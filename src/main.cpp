@@ -1,14 +1,15 @@
 #include <iostream>
 #include <vector>
 
-#include "threed_beam_fea.h"
+#include <threed_beam_fea.h>
 
-#include "Eigen/Core"
+#include <Eigen/Core>
 
-#include "igl/edges.h"
-#include "igl/list_to_matrix.h"
-#include "igl/matrix_to_list.h"
-#include "igl/readPLY.h"
+#include <vcg/complex/algorithms/create/platonic.h>
+#include <vcg/complex/algorithms/update/normal.h>
+#include <vcg/complex/complex.h>
+#include <wrap/io_trimesh/import.h>
+//#include <wrap/nanoply/include/nanoplyWrapper.hpp>
 
 struct Properties
 {
@@ -39,6 +40,39 @@ struct Properties
 class BeamSimulator
 {
 
+  class MyVertex;
+  class MyFace;
+  class MyEdge;
+
+  class MyUsedTypes
+    : public vcg::UsedTypes<vcg::Use<MyVertex>::AsVertexType,
+                            vcg::Use<MyEdge>::AsEdgeType,
+                            vcg::Use<MyFace>::AsFaceType>
+  {};
+  class MyVertex
+    : public vcg::Vertex<MyUsedTypes,
+                         vcg::vertex::Coord3d,
+                         vcg::vertex::Normal3d,
+                         vcg::vertex::Color4b,
+                         vcg::vertex::BitFlags>
+  {};
+
+  class MyEdge
+    : public vcg::Edge<MyUsedTypes,
+                       vcg::edge::VertexRef,
+                       vcg::edge::BitFlags,
+                       vcg::edge::EEAdj>
+  {};
+
+  class MyFace
+    : public vcg::Face<MyUsedTypes, vcg::face::VertexRef, vcg::face::Normal3f>
+  {};
+
+  class MyMesh
+    : public vcg::tri::
+        TriMesh<std::vector<MyVertex>, std::vector<MyFace>, std::vector<MyEdge>>
+  {};
+
   std::vector<fea::Elem> elements;
   std::vector<fea::Node> nodes;
   std::vector<fea::BC> boundaryConditions;
@@ -60,54 +94,128 @@ public:
     this->elements = elements;
   }
 
-  void loadElementsAndNodesFromPLY(const std::string plyFilename)
+  static void printInfo(const MyMesh& mesh)
   {
-    std::vector<std::vector<double>> v, n, uv;
-    std::vector<std::vector<int>> f;
-    igl::readPLY(plyFilename, v, f, n, uv);
-    Eigen::MatrixX3d V, N;
-    Eigen::MatrixX3i F;
-    igl::list_to_matrix(v, V);
-    igl::list_to_matrix(f, F);
-    igl::list_to_matrix(n, N);
-    assert(V.size() != 0 && N.size() != 0 && F.size() != 0);
-
-    nodes.resize(static_cast<size_t>(V.rows()));
-    for (int vertexIndex = 0; vertexIndex < V.rows(); vertexIndex++) {
-      nodes[static_cast<size_t>(vertexIndex)] = V.row(vertexIndex);
+    const bool printDetailedInfo = false;
+    if (printDetailedInfo) {
+      std::cout << "~~Vertices info~~" << std::endl;
+      size_t vertexIndex = 0;
+      for (MyVertex v : mesh.vert) {
+        std::cout << "Vertex Index:" << vertexIndex++ << endl;
+        std::cout << "Position:" << v.cP().X() << " " << v.cP().Y() << " "
+                  << v.cP().Z() << endl;
+        std::cout << "Normal:" << v.cN().X() << " " << v.cN().Y() << " "
+                  << v.cN().Z() << endl;
+        std::cout << "Color:" << static_cast<int>(v.cC().X()) << " "
+                  << static_cast<int>(v.cC().Y()) << " "
+                  << static_cast<int>(v.cC().Z()) << endl;
+      }
+      std::cout << "~~Faces info~~" << std::endl;
+      size_t faceIndex = 0;
+      for (MyFace f : mesh.face) {
+        std::cout << "Face Index:" << faceIndex++ << std::endl;
+        std::cout << "Vertices:";
+        for (int vertexIndexInFace = 0; vertexIndexInFace < f.VN();
+             vertexIndexInFace++) {
+          size_t vertexIndexInMesh =
+            vcg::tri::Index<MyMesh>(mesh, f.V(vertexIndexInFace));
+          std::cout << " " << vertexIndexInMesh;
+        }
+        std::cout << std::endl;
+      }
+    } else {
+      std::cout << "Number of vertices:" << mesh.VN() << endl;
+      std::cout << "Number of faces:" << mesh.FN() << endl;
+      std::cout << "Number of edges:" << mesh.EN() << endl;
     }
-
-    Eigen::MatrixX2i E;
-    igl::edges(F, E);
-    using Edge = std::vector<int>;
-    std::vector<Edge> e;
-    igl::matrix_to_list(E, e);
-    std::transform(
-      e.begin(), e.end(), std::back_inserter(elements), [&](const Edge& edge) {
-        const unsigned int nodeIndex1 = static_cast<unsigned int>(edge[0]);
-        const unsigned int nodeIndex2 = static_cast<unsigned int>(edge[1]);
-        const Eigen::Vector3d n1(N.row(nodeIndex1));
-        const Eigen::Vector3d n2(N.row(nodeIndex2));
-        const Eigen::Vector3d nAverage = (n1 + n2) / 2;
-        const std::vector<double> nAverageVector = { nAverage.x(),
-                                                     nAverage.y(),
-                                                     nAverage.z() };
-        fea::Props feaProperties(simulationProperties.EA,
-                                 simulationProperties.EIz,
-                                 simulationProperties.EIy,
-                                 simulationProperties.GJ,
-                                 nAverageVector);
-        return fea::Elem(nodeIndex1, nodeIndex2, feaProperties);
-      });
   }
 
-  void fixVertices(const std::vector<unsigned int> vertices)
+  void loadPLY(const std::string plyFilename, MyMesh& mesh)
+  {
+    int returnValue =
+      vcg::tri::io::ImporterPLY<MyMesh>::Open(mesh, plyFilename.c_str());
+    if (returnValue != 0) {
+      std::cout << "Unable to open %s for '%s'\n" + plyFilename +
+                     vcg::tri::io::ImporterPLY<MyMesh>::ErrorMsg(returnValue)
+                << std::endl;
+      throw std::runtime_error{ "Unable to load the ply file." };
+    }
+    std::cout << plyFilename << " was loaded successfuly." << std::endl;
+    vcg::tri::UpdateTopology<MyMesh>::AllocateEdge(mesh);
+    vcg::tri::UpdateNormal<MyMesh>::PerVertexNormalized(mesh);
+    printInfo(mesh);
+  }
+
+  void populateNodes(const MyMesh& mesh)
+  {
+    nodes.clear();
+    nodes.resize(static_cast<size_t>(mesh.VN()));
+    for (int vertexIndex = 0; vertexIndex < mesh.VN(); vertexIndex++) {
+      MyMesh::CoordType vertexCoordinates =
+        mesh.vert[static_cast<size_t>(vertexIndex)].cP();
+      nodes[static_cast<size_t>(vertexIndex)] = Eigen::Vector3d(
+        vertexCoordinates.X(), vertexCoordinates.Y(), vertexCoordinates.Z());
+    }
+  }
+
+  void populateElements(const MyMesh& mesh)
+  {
+    elements.clear();
+    elements.resize(static_cast<size_t>(mesh.EN()));
+    for (size_t edgeIndex = 0; edgeIndex < static_cast<size_t>(mesh.EN());
+         edgeIndex++) {
+      const MyMesh::EdgeType& edge = mesh.edge[edgeIndex];
+      const vcg::Point3d nAverage =
+        ((edge.cV(0)->cN() + edge.cV(1)->cN()) / 2).Normalize();
+      const std::vector<double> nAverageVector{ nAverage.X(),
+                                                nAverage.Y(),
+                                                nAverage.Z() };
+      fea::Props feaProperties(simulationProperties.EA,
+                               simulationProperties.EIz,
+                               simulationProperties.EIy,
+                               simulationProperties.GJ,
+                               nAverageVector);
+      const size_t nodeIndex0 = vcg::tri::Index<MyMesh>(mesh, edge.cV(0));
+      const size_t nodeIndex1 = vcg::tri::Index<MyMesh>(mesh, edge.cV(1));
+      fea::Elem element(static_cast<unsigned int>(nodeIndex0),
+                        static_cast<unsigned int>(nodeIndex1),
+                        feaProperties);
+      elements[edgeIndex] = element;
+    }
+  }
+
+  void populateElementsAndNodes(const std::string plyFilename,
+                                const bool shouldFixRedVertices)
+  {
+    MyMesh mesh;
+    loadPLY(plyFilename, mesh);
+    populateNodes(mesh);
+    populateElements(mesh);
+
+    if (shouldFixRedVertices) {
+      std::vector<size_t> redVertices;
+      for (const MyVertex& v : mesh.vert) {
+        const MyMesh::VertexType::ColorType red =
+          MyMesh::VertexType::ColorType::Red;
+        const MyMesh::VertexType::ColorType vertexColor = v.cC();
+        if (red.operator==(vertexColor)) {
+          size_t vertexIndex = vcg::tri::Index<MyMesh>(
+            mesh,
+            v); // I synartisi Index den exei noima giati sygkrinei pointers
+          redVertices.push_back(vertexIndex);
+        }
+      }
+      fixVertices(redVertices);
+    }
+  }
+
+  void fixVertices(const std::vector<size_t> vertices)
   {
     boundaryConditions.clear();
     boundaryConditions.resize(6 * vertices.size());
     unsigned int DoFIndex = 0;
     for (unsigned int i = 0; i < vertices.size(); i++) {
-      const unsigned int vertexIndex = vertices[i];
+      const unsigned int vertexIndex = static_cast<unsigned int>(vertices[i]);
       fea::BC bcTX(vertexIndex, fea::DOF::DISPLACEMENT_X, 0);
       boundaryConditions[DoFIndex++] = bcTX;
       fea::BC bcTY(vertexIndex, fea::DOF::DISPLACEMENT_Y, 0);
@@ -129,8 +237,33 @@ public:
     nodalForces = forces;
   }
 
-  void executeSimulation()
+  static void printInfo(const fea::Job& job)
   {
+    std::cout << "Details regarding the fea::Job:" << std::endl;
+    std::cout << "Nodes:" << std::endl;
+    for (fea::Node n : job.nodes) {
+      std::cout << n << std::endl;
+    }
+    std::cout << "Elements:" << std::endl;
+    for (Eigen::Vector2i e : job.elems) {
+      std::cout << e << std::endl;
+    }
+  }
+
+  void reset()
+  {
+    elements.clear();
+    nodes.clear();
+    boundaryConditions.clear();
+    nodalForces.clear();
+  }
+  void executeSimulation(const std::string plyFilename,
+                         const bool shouldFixRedVertices)
+  {
+    reset();
+    populateElementsAndNodes(plyFilename, shouldFixRedVertices);
+    fea::Job job(nodes, elements);
+    printInfo(job);
     // create the default options
     fea::Options opts;
 
@@ -150,7 +283,12 @@ public:
     // also create an empty list of equations as none were prescribed
     std::vector<fea::Equation> equations;
 
-    fea::Job job(nodes, elements);
+    setNodalForces(std::vector<fea::Force>{
+      fea::Force(0,
+                 fea::DOF::DISPLACEMENT_X,
+                 1000) }); // Na rwtisw ton luigi se ti morfi dineis tis
+                           // dynameis kai ta bc se commercial solvers
+
     fea::Summary summary =
       fea::solve(job, boundaryConditions, nodalForces, ties, equations, opts);
 
@@ -162,40 +300,15 @@ public:
 int
 main()
 {
-  bool usePLY = true;
+  const std::string filename(
+    "/home/iason/Coding/Projects/Euler-Bernoulli Beam "
+    "simulation/models/tetrahedron.ply"
+    //"/home/iason/Coding/Projects/Euler-Bernoulli Beam "
+    //"simulation/models/geometries with flags and colors/barrellvault2.ply"
+  );
+
   BeamSimulator simulator;
-  if (usePLY) {
-    const std::string filename("/home/iason/Coding/Projects/Euler-Bernoulli "
-                               "Beam simulation/tetrahedron.ply");
-    simulator.loadElementsAndNodesFromPLY(filename);
-  } else {
-    fea::Node node1, node2;
-    // place the first node at (0, 0, 0)
-    node1 << 0, 0, 0;
-    // place the second node at (1, 0, 0)
-    node2 << 1, 0, 0;
-    std::vector<fea::Node> nodes{ node1, node2 };
-    simulator.setNodes(nodes);
-
-    Properties materialProperties;
-    std::vector<double> normal_vec = { 0.0, 0.0, 1.0 };
-    fea::Props props(materialProperties.EA,
-                     materialProperties.EIz,
-                     materialProperties.EIy,
-                     materialProperties.GJ,
-                     normal_vec);
-    // define the indices of the node list that form the element
-    unsigned int nn1 = 0;
-    unsigned int nn2 = 1;
-    fea::Elem elem(nn1, nn2, props);
-    std::vector<fea::Elem> elements{ elem };
-    simulator.setElements(elements);
-  }
-
-  std::vector<unsigned int> fixedVertices{ 1, 2, 3 };
-  simulator.fixVertices(fixedVertices);
-  simulator.setNodalForces(
-    std::vector<fea::Force>{ fea::Force(0, fea::DOF::DISPLACEMENT_X, 1000) });
-  simulator.executeSimulation();
+  const bool fixRedVertices = true;
+  simulator.executeSimulation(filename, fixRedVertices);
   return 0;
 }
