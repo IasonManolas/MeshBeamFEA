@@ -1,7 +1,10 @@
+#include <filesystem>
 #include <iostream>
 #include <vector>
 
 #include <threed_beam_fea.h>
+
+#include <json.hpp>
 
 #include <Eigen/Core>
 
@@ -9,7 +12,6 @@
 #include <vcg/complex/algorithms/update/normal.h>
 #include <vcg/complex/complex.h>
 #include <wrap/io_trimesh/import.h>
-//#include <wrap/nanoply/include/nanoplyWrapper.hpp>
 
 struct Properties
 {
@@ -35,6 +37,11 @@ struct Properties
     EIy = youngsModulus * I2;       // Young's modulus* I2
     GJ = G * polarInertia;          // G * Polar Inertia
   }
+};
+struct VertexForce
+{
+  size_t vertexIndex;
+  Eigen::Vector3d force;
 };
 
 class BeamSimulator
@@ -78,6 +85,8 @@ class BeamSimulator
   std::vector<fea::BC> boundaryConditions;
   std::vector<fea::Force> nodalForces;
   Properties simulationProperties;
+  std::string nodalDisplacementOutputFilepath;
+  std::string nodalForcesOutputFilepath;
 
 public:
   BeamSimulator() {}
@@ -143,7 +152,7 @@ public:
     std::cout << plyFilename << " was loaded successfuly." << std::endl;
     vcg::tri::UpdateTopology<MyMesh>::AllocateEdge(mesh);
     vcg::tri::UpdateNormal<MyMesh>::PerVertexNormalized(mesh);
-    printInfo(mesh);
+    // printInfo(mesh);
   }
 
   void populateNodes(const MyMesh& mesh)
@@ -184,38 +193,21 @@ public:
     }
   }
 
-  void populateElementsAndNodes(const std::string plyFilename,
-                                const bool shouldFixRedVertices)
+  void populateElementsAndNodes(const std::string plyFilename)
   {
     MyMesh mesh;
     loadPLY(plyFilename, mesh);
     populateNodes(mesh);
     populateElements(mesh);
-
-    if (shouldFixRedVertices) {
-      std::vector<size_t> redVertices;
-      for (const MyVertex& v : mesh.vert) {
-        const MyMesh::VertexType::ColorType red =
-          MyMesh::VertexType::ColorType::Red;
-        const MyMesh::VertexType::ColorType vertexColor = v.cC();
-        if (red.operator==(vertexColor)) {
-          size_t vertexIndex = vcg::tri::Index<MyMesh>(
-            mesh,
-            v); // I synartisi Index den exei noima giati sygkrinei pointers
-          redVertices.push_back(vertexIndex);
-        }
-      }
-      fixVertices(redVertices);
-    }
   }
 
-  void fixVertices(const std::vector<size_t> vertices)
+  void fixVertices(const std::vector<unsigned int> vertices)
   {
     boundaryConditions.clear();
     boundaryConditions.resize(6 * vertices.size());
     unsigned int DoFIndex = 0;
     for (unsigned int i = 0; i < vertices.size(); i++) {
-      const unsigned int vertexIndex = static_cast<unsigned int>(vertices[i]);
+      const unsigned int vertexIndex = vertices[i];
       fea::BC bcTX(vertexIndex, fea::DOF::DISPLACEMENT_X, 0);
       boundaryConditions[DoFIndex++] = bcTX;
       fea::BC bcTY(vertexIndex, fea::DOF::DISPLACEMENT_Y, 0);
@@ -231,10 +223,18 @@ public:
     }
   }
 
-  void setNodalForces(const std::vector<fea::Force> forces)
+  void setNodalForces(const std::vector<std::vector<unsigned int>> vertexForces)
   {
     nodalForces.clear();
-    nodalForces = forces;
+    nodalForces.resize(vertexForces.size());
+    for (size_t forceIndex = 0; forceIndex < vertexForces.size();
+         forceIndex++) {
+      const std::vector<unsigned int>& forceVector = vertexForces[forceIndex];
+      const unsigned int& nodeIndex = forceVector[0];
+      const fea::DOF dof(static_cast<fea::DOF>(forceVector[1]));
+      const double& forceMagnitude(static_cast<double>(forceVector[2]));
+      nodalForces[forceIndex] = fea::Force(nodeIndex, dof, forceMagnitude);
+    }
   }
 
   static void printInfo(const fea::Job& job)
@@ -257,22 +257,56 @@ public:
     boundaryConditions.clear();
     nodalForces.clear();
   }
-  void executeSimulation(const std::string plyFilename,
-                         const bool shouldFixRedVertices)
+
+  void parseConfigurationFile(const std::string configurationFilename)
+  {
+    ifstream inFile(configurationFilename);
+    std::string jsonContents((std::istreambuf_iterator<char>(inFile)),
+                             std::istreambuf_iterator<char>());
+    nlohmann::json jsonFile(nlohmann::json::parse(jsonContents));
+
+    const std::string plyFilename = jsonFile["plyFilename"];
+    if (!std::filesystem::exists(plyFilename)) {
+      throw std::runtime_error{ "Input ply file does not exist." };
+    }
+    populateElementsAndNodes(filesystem::absolute(plyFilename).string());
+
+    const std::string jsonNodalDisplacementOutputPath =
+      jsonFile["nodalDisplacemntsCSV"];
+    if (!jsonNodalDisplacementOutputPath.empty()) {
+      nodalDisplacementOutputFilepath =
+        filesystem::absolute(jsonNodalDisplacementOutputPath).string();
+    }
+    const std::string jsonNodalForcesOutputPath = jsonFile["nodalForcesCSV"];
+    if (!jsonNodalForcesOutputPath.empty()) {
+      nodalForcesOutputFilepath =
+        filesystem::absolute(jsonNodalForcesOutputPath).string();
+    }
+
+    std::vector<unsigned int> fixedVertices = jsonFile["fixedVertices"];
+    fixVertices(fixedVertices);
+
+    std::vector<std::vector<unsigned int>> forces = jsonFile["forces"];
+    setNodalForces(forces);
+  }
+
+  void executeSimulation(const std::string configurationFilename)
   {
     reset();
-    populateElementsAndNodes(plyFilename, shouldFixRedVertices);
+    parseConfigurationFile(configurationFilename);
     fea::Job job(nodes, elements);
-    printInfo(job);
+    // printInfo(job);
+
     // create the default options
     fea::Options opts;
-
-    // request nodal forces and displacements
-    opts.save_nodal_forces = true;
-    opts.save_nodal_displacements = true;
-
-    // set custom name for nodal forces output
-    opts.nodal_forces_filename = "cantilever_beam_forces.csv";
+    if (!nodalForcesOutputFilepath.empty()) {
+      opts.save_nodal_forces = true;
+      opts.nodal_forces_filename = nodalForcesOutputFilepath;
+    }
+    if (!nodalDisplacementOutputFilepath.empty()) {
+      opts.save_nodal_displacements = true;
+      opts.nodal_displacements_filename = nodalDisplacementOutputFilepath;
+    }
 
     // have the program output status updates
     opts.verbose = true;
@@ -283,12 +317,6 @@ public:
     // also create an empty list of equations as none were prescribed
     std::vector<fea::Equation> equations;
 
-    setNodalForces(std::vector<fea::Force>{
-      fea::Force(0,
-                 fea::DOF::DISPLACEMENT_X,
-                 1000) }); // Na rwtisw ton luigi se ti morfi dineis tis
-                           // dynameis kai ta bc se commercial solvers
-
     fea::Summary summary =
       fea::solve(job, boundaryConditions, nodalForces, ties, equations, opts);
 
@@ -298,17 +326,19 @@ public:
 };
 
 int
-main()
+main(int argc, char* argv[])
 {
-  const std::string filename(
-    "/home/iason/Coding/Projects/Euler-Bernoulli Beam "
-    "simulation/models/tetrahedron.ply"
-    //"/home/iason/Coding/Projects/Euler-Bernoulli Beam "
-    //"simulation/models/geometries with flags and colors/barrellvault2.ply"
-  );
+  if (argc != 2) {
+    throw std::runtime_error{ "Wrong number of arguments." };
+  }
+  const std::string configurationFilename = argv[1];
+  // check if file exists using std::filesystem
+  if (!std::filesystem::exists(configurationFilename)) {
+    throw std::runtime_error{ "Configuration filepath does not exist." };
+    return 1;
+  }
 
   BeamSimulator simulator;
-  const bool fixRedVertices = true;
-  simulator.executeSimulation(filename, fixRedVertices);
+  simulator.executeSimulation(configurationFilename);
   return 0;
 }
