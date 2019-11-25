@@ -13,7 +13,7 @@ Eigen and C++17
 ### Installing
 Build using cmake.
 ### Running
-1.Write a json configuration file. An example named example_config.json is provided. Its structure should be as follows: <br/>
+1. Write a json configuration file. An example named example_config.json is provided. Its structure should be as follows: <br/>
 -*Compulsory* **plyFilename**: Defines the filepath to the ply file on which the simulation will be executed.<br/>
 -*Optional* **nodalDisplacemntsCSV**: Defines the filepath of a csv file in which the nodal displacements after the simulation are saved. If omitted the results are not saved.<br/>
 -*Optional* **nodalForcesCSV**: Defines the filepath of a csv file in which the nodal forces after the simulation are saved. If omitted the results are not saved.<br/>
@@ -22,7 +22,7 @@ Build using cmake.
 VIn denotes the index of the vertex on which the force should be applied on.<br/>
 DoFn denotes the DoF of the force<br/>
 FMn denotes the magnitude force in Newtons. This should be an integer.<br/>
-2.After successful building an executable called MeshBeamFEA is generated. Run and pass as a run argument the filepath of the configuration file you created in the previous step.<br/>
+2. After successful building an executable called MeshBeamFEA is generated. Run and pass as a run argument the filepath of the configuration file you created in the previous step.<br/>
 
 ## License
 
