@@ -20,7 +20,7 @@ Build using cmake.
 -*Optional* **fixedVertices**: Defines the zero-based indices of the fixed vertices. All the DoF of those vertices will be fixed in the simulation.<br/>
 -*Optional* **forces**: [[VI<sub>1</sub>,DoF<sub>1</sub>,FM<sub>1</sub>],[VI<sub>2</sub>,DoF<sub>2</sub>,FM<sub>2</sub>],..], where <br/>
 VI<sub>n</sub> denotes the index of the vertex on which the force should be applied on.<br/>
-DoF<sub>n</sub> denotes the DoF of the force<br/>
+DoF<sub>n</sub> denotes the DoF of the force. Values 0,1,2 and 3,4,5 refer to the x,y,z translational and rotational DoF respectively.<br/>
 FM<sub>n</sub> denotes the magnitude force in Newtons. This should be an integer.<br/>
 2. After successful building an executable called MeshBeamFEA is generated. Run and pass as a run argument the filepath of the configuration file you created in the previous step.<br/>
 
