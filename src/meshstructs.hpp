@@ -1,4 +1,0 @@
-#ifndef MESHSTRUCTS_HPP
-#define MESHSTRUCTS_HPP
-
-#endif // MESHSTRUCTS_HPP
