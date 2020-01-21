@@ -1,0 +1,17 @@
+ply
+format ascii 1.0
+element vertex 2           { define "vertex" element, 8 of them in file }
+property float x           { vertex contains float "x" coordinate }
+property float y           { y coordinate is also a vertex property }
+property float z           { z coordinate, too }
+element edge 1             { there are 6 "face" elements in the file }
+property int vertex1
+property int vertex2
+property list uchar float edge_normal
+property list uchar float beam_dimensions
+property list uchar float beam_material {poissons ratio , young's modulus in GPascal}
+end_header
+
+0 0 0
+1 0 0
+0 1 3 0.0 1.0 0.0 2 0.01 0.01 2 0.3 800
