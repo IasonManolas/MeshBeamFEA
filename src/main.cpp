@@ -1,31 +1,17 @@
-#include "beamsimulator.hpp"
-#include "drawer.hpp"
-#include "mesh.hpp"
+#include "gui.hpp"
 #include <filesystem>
 #include <iostream>
 #include <json.hpp>
 #include <stdexcept>
+#include <string>
 
 struct ConfigurationFile {
   SimulationOptions simulationProperties;
   bool shouldDrawResults = false;
   std::string plyFilename;
+  std::string nodalDisplacementsOutputFilepath;
+  std::string nodalForcesOutputFilepath;
 };
-
-void populateMesh(const std::string plyFilename, VCGMesh &mesh) {
-  int returnValue =
-      vcg::tri::io::ImporterPLY<VCGMesh>::Open(mesh, plyFilename.c_str());
-  if (returnValue != 0) {
-    std::cout << "Unable to open %s for '%s'\n" + plyFilename +
-                     vcg::tri::io::ImporterPLY<VCGMesh>::ErrorMsg(returnValue)
-              << std::endl;
-    throw std::runtime_error{"Unable to load the ply file."};
-  }
-  std::cout << plyFilename << " was loaded successfuly." << std::endl;
-  vcg::tri::UpdateTopology<VCGMesh>::AllocateEdge(mesh);
-  vcg::tri::UpdateNormal<VCGMesh>::PerVertexNormalized(mesh);
-  mesh.printInfo();
-}
 
 void parseConfigurationFile(const std::string configurationFilename,
                             ConfigurationFile &configurationFile) {
@@ -43,12 +29,12 @@ void parseConfigurationFile(const std::string configurationFilename,
   const std::string jsonNodalDisplacementsOutputPath =
       jsonFile["nodalDisplacementsCSV"];
   if (!jsonNodalDisplacementsOutputPath.empty()) {
-    configurationFile.simulationProperties.nodalDisplacementsOutputFilepath =
+    configurationFile.nodalDisplacementsOutputFilepath =
         filesystem::absolute(jsonNodalDisplacementsOutputPath).string();
   }
   const std::string jsonNodalForcesOutputPath = jsonFile["nodalForcesCSV"];
   if (!jsonNodalForcesOutputPath.empty()) {
-    configurationFile.simulationProperties.nodalForcesOutputFilepath =
+    configurationFile.nodalForcesOutputFilepath =
         filesystem::absolute(jsonNodalForcesOutputPath).string();
   }
 
@@ -63,38 +49,40 @@ void parseConfigurationFile(const std::string configurationFilename,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    throw std::runtime_error{"Wrong number of arguments."};
-  }
-  const std::string configurationFilename = argv[1];
-  // check if file exists using std::filesystem
-  if (!std::filesystem::exists(configurationFilename)) {
-    throw std::runtime_error{"Configuration filepath does not exist."};
-    return 1;
-  }
+  GUI simulationGui;
+  //  if (argc != 2) {
+  //    throw std::runtime_error{"Wrong number of arguments."};
+  //  }
+  //  const std::string configurationFilename = argv[1];
+  //  // check if file exists using std::filesystem
+  //  if (!std::filesystem::exists(configurationFilename)) {
+  //    throw std::runtime_error{"Configuration filepath does not exist."};
+  //    return 1;
+  //  }
 
-  ConfigurationFile configurationFile;
-  parseConfigurationFile(configurationFilename, configurationFile);
+  //  ConfigurationFile configurationFile;
+  //  parseConfigurationFile(configurationFilename, configurationFile);
 
-  VCGMesh mesh;
-  populateMesh(configurationFile.plyFilename, mesh);
-  configurationFile.simulationProperties.fixedVertices.clear();
-  for (const MyVertex &v : mesh.vert) {
-    vcg::Color4b red = vcg::Color4b::Red;
-    if (v.C().operator==(red)) {
-      configurationFile.simulationProperties.fixedVertices.push_back(
-          static_cast<int>(vcg::tri::Index(mesh, v)));
-    }
-  }
+  //  VCGMesh mesh;
+  //  populateMesh(configurationFile.plyFilename, mesh);
 
-  BeamSimulator simulator(mesh, configurationFile.simulationProperties);
-  fea::Summary simulationSummary = simulator.executeSimulation();
+  //  // configurationFile.simulationProperties.fixedVertices.clear();
+  //  // for (const VCGVertex &v : mesh.vert) {
+  //  //  vcg::Color4b red = vcg::Color4b::Red;
+  //  //  if (v.C().operator==(red)) {
+  //  //    configurationFile.simulationProperties.fixedVertices.push_back(
+  //  //        static_cast<int>(vcg::tri::Index(mesh, v)));
+  //  //  }
+  //  //}
 
-  if (configurationFile.shouldDrawResults) {
-    SimulationResultsDrawer drawer(mesh, simulationSummary.nodal_displacements,
-                                   simulationSummary.nodal_forces);
-    drawer.draw();
-  }
+  //  BeamSimulator simulator(mesh, configurationFile.simulationProperties);
+  //  fea::Summary simulationSummary = simulator.executeSimulation();
+
+  //  if (configurationFile.shouldDrawResults) {
+  //    Drawer drawer(mesh, simulationSummary.nodal_displacements,
+  //                  simulationSummary.element_forces);
+  //    drawer.draw();
+  //  }
 
   return 0;
 }

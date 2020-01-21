@@ -1,117 +1,259 @@
 #include "drawer.hpp"
+#include <Eigen/Geometry>
+#include <igl/combine.h>
 #include <igl/jet.h>
 #include <igl/list_to_matrix.h>
+#include <vcg/complex/algorithms/create/platonic.h>
 
-void SimulationResultsDrawer::computeVerticesColors(
-    const std::vector<std::vector<double>> &vertexDataValues) {
-  Eigen::MatrixXd eigenVertexDataValues(vcgMesh.VN(), 6);
-  igl::list_to_matrix(vertexDataValues, eigenVertexDataValues);
-  for (int verticesDataFieldIndex = 0;
-       verticesDataFieldIndex < eigenVertexDataValues.cols();
-       verticesDataFieldIndex++) {
-    Eigen::VectorXd verticesDataField(
-        eigenVertexDataValues.col(verticesDataFieldIndex));
-    Eigen::MatrixX3d colors(vcgMesh.VN(), 3);
-    igl::jet(verticesDataField, true, colors);
-    verticesColors.push_back(colors);
+// Drawer::Drawer(const VCGMesh &m,
+//               const std::vector<std::vector<double>> &vDisplacements,
+//               const std::vector<std::vector<double>> &edgeForces)
+//    : vcgMesh(m), vertexDisplacements(vDisplacements), edgeForces(edgeForces)
+//    {}
+
+void Drawer::generateDrawingData(const Eigen::MatrixX3d &vertices,
+                                 const Eigen::MatrixX3i &triangleFaces,
+                                 ViewerData &drawingData) const {
+  drawingData.set_mesh(vertices, triangleFaces);
+  drawingData.compute_normals();
+}
+
+void Drawer::generateDrawingData(const Eigen::MatrixX3d &vertices,
+                                 const Eigen::MatrixX3i &triangleFaces,
+                                 const Eigen::RowVector3d &color,
+                                 ViewerData &drawingData) const {
+  generateDrawingData(vertices, triangleFaces, drawingData);
+  drawingData.set_colors(color);
+}
+
+void Drawer::generateDrawingData(const Eigen::MatrixX3d &edgeStartPoints,
+                                 const Eigen::MatrixX3d &edgeEndPoints,
+                                 const Eigen::MatrixX3d &colors,
+                                 ViewerData &drawingData) const {
+  drawingData.add_edges(edgeStartPoints, edgeEndPoints, colors);
+}
+
+void Drawer::generateDrawingData(const Eigen::MatrixX3d &vertices,
+                                 const Eigen::MatrixX2i &edges,
+                                 ViewerData &drawingData) const {
+  Eigen::MatrixX3d C(1, 3);
+  C.row(0) = Eigen::Vector3d{1, 0, 0};
+  drawingData.set_edges(vertices, edges, C);
+}
+
+void Drawer::drawEdges(const std::string drawingDataID,
+                       const Eigen::MatrixX3d &vertices,
+                       const Eigen::MatrixX2i edges,
+                       const Eigen::MatrixX3d &edgeNormals,
+                       const std::vector<BeamDimensions> &beamDimensions,
+                       Viewer &viewer) const {
+  assert(!viewer.hasDrawingData(drawingDataID));
+  const bool drawEdgesAsBeams = true;
+  if (drawEdgesAsBeams) {
+    VCGTriMesh beamMesh;
+    VCGTriMesh::constructBeamMesh(vertices, edges, edgeNormals, beamDimensions,
+                                  beamMesh);
+    const int verticesPerBeam = beamMesh.VN() / (edges.rows());
+    IGLMesh iglBeamMesh = beamMesh.getIGLMesh();
+    assert(iglBeamMesh.vertices.rows() == verticesPerBeam * edges.rows());
+    ViewerData drawingData;
+    generateDrawingData(iglBeamMesh.vertices, iglBeamMesh.triFaces,
+                        drawingData);
+    viewer.addDrawingData(drawingDataID, drawingData);
+    viewer.setDrawingDataVisibility(drawingDataID, true);
+  } else {
+    ViewerData drawingData;
+    generateDrawingData(vertices, edges, drawingData);
+    viewer.addDrawingData(drawingDataID, drawingData);
   }
 }
 
-void SimulationResultsDrawer::vcgToEigenMesh(const VCGMesh &vcgMesh,
-                                             Eigen::MatrixX3d &vertices,
-                                             Eigen::MatrixX3i &triFaces) {
-  vertices.resize(vcgMesh.VN(), 3);
-  const std::vector<MyVertex> &meshVerts = vcgMesh.vert;
-  for (size_t vertexIndex = 0; vertexIndex < meshVerts.size(); vertexIndex++) {
-    vertices.row(static_cast<Eigen::Index>(vertexIndex)) = Eigen::Vector3d(
-        meshVerts[vertexIndex].P().X(), meshVerts[vertexIndex].P().Y(),
-        meshVerts[vertexIndex].P().Z());
+void Drawer::markPositions(const string drawingDataID,
+                           const Eigen::MatrixX3d &spherePositions,
+                           Viewer &viewer) const {
+  assert(!viewer.hasDrawingData(drawingDataID));
+  VCGTriMesh squares;
+  for (int sphereIndex = 0; sphereIndex < spherePositions.rows();
+       sphereIndex++) {
+    Eigen::Vector3d position = spherePositions.row(sphereIndex);
+    VCGTriMesh square;
+    vcg::tri::Icosahedron<VCGTriMesh>(square);
+    vcg::tri::UpdatePosition<VCGTriMesh>::Scale(square, 0.01);
+    vcg::tri::UpdatePosition<VCGTriMesh>::Translate(
+        square, VCGTriMesh::convertToVCGPoint(position));
+    vcg::tri::Append<VCGTriMesh, VCGTriMesh>::Mesh(squares, square);
   }
-
-  triFaces.resize(vcgMesh.FN(), 3);
-  const std::vector<MyFace> &meshFaces = vcgMesh.face;
-  for (size_t faceIndex = 0; faceIndex < meshFaces.size(); faceIndex++) {
-    int vertex0Index = static_cast<int>(
-        vcg::tri::Index<VCGMesh>(vcgMesh, meshFaces[faceIndex].cV(0)));
-    int vertex1Index = static_cast<int>(
-        vcg::tri::Index<VCGMesh>(vcgMesh, meshFaces[faceIndex].cV(1)));
-    int vertex2Index = static_cast<int>(
-        vcg::tri::Index<VCGMesh>(vcgMesh, meshFaces[faceIndex].cV(2)));
-    triFaces.row(static_cast<Eigen::Index>(faceIndex)) =
-        Eigen::Vector3i(vertex0Index, vertex1Index, vertex2Index);
-  }
+  IGLMesh iglSquares = squares.getIGLMesh();
+  ViewerData drawingData;
+  Eigen::RowVector3d redColor(1, 0, 0);
+  generateDrawingData(iglSquares.vertices, iglSquares.triFaces, redColor,
+                      drawingData);
+  viewer.addDrawingData(drawingDataID, drawingData);
 }
 
-void SimulationResultsDrawer::addMesh(const Eigen::MatrixX3d &vertices,
-                                      const Eigen::MatrixX3i &triFaces,
-                                      const bool shouldBeVisible,
-                                      igl::opengl::glfw::Viewer &viewer) const {
-  igl::opengl::ViewerData data;
-  data.set_mesh(vertices, triFaces);
-  data.set_visible(shouldBeVisible);
-  data.compute_normals();
-  viewer.data_list.push_back(data);
+// void Drawer::extractEdgeNodes(
+//    const VCGMesh &mesh, const Eigen::MatrixX3d &vertices,
+//    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> &edgeNodes) {
+//  edgeNodes.clear();
+//  edgeNodes.resize(mesh.EN());
+//  for (int edgeIndex = 0; edgeIndex < mesh.EN(); edgeIndex++) {
+//    const Eigen::Vector3d p0 =
+//        vertices.row(vcg::tri::Index(mesh, *mesh.edge[edgeIndex].cV(0)));
+//    const Eigen::Vector3d p1 =
+//        vertices.row(vcg::tri::Index(mesh, *mesh.edge[edgeIndex].cV(1)));
+//    edgeNodes[edgeIndex] = std::make_pair(p0, p1);
+//  }
+//}
+
+void Drawer::drawWorldAxis(const std::string &drawingDataID, Viewer &viewer,
+                           const double &axisLength /*=1*/) {
+  assert(!viewer.hasDrawingData(drawingDataID));
+  Eigen::MatrixXd startingPositions(3, 3);
+  startingPositions.row(0) = Eigen::Vector3d(0, 0, 0);
+  startingPositions.row(1) = Eigen::Vector3d(0, 0, 0);
+  startingPositions.row(2) = Eigen::Vector3d(0, 0, 0);
+  Eigen::MatrixXd axisColors(3, 3);
+  Eigen::MatrixXd endingPositions(3, 3);
+  endingPositions.row(0) = Eigen::Vector3d(axisLength, 0, 0);
+  endingPositions.row(1) = Eigen::Vector3d(0, axisLength, 0);
+  endingPositions.row(2) = Eigen::Vector3d(0, 0, axisLength);
+  axisColors = endingPositions;
+  ViewerData axisDrawingData;
+  axisDrawingData.add_edges(startingPositions, endingPositions, axisColors);
+  viewer.addDrawingData(drawingDataID, axisDrawingData);
 }
 
-void SimulationResultsDrawer::createMenu(
-    igl::opengl::glfw::Viewer &viewer,
-    igl::opengl::glfw::imgui::ImGuiMenu &menu) const {
-  menu.callback_draw_viewer_menu = [&]() {
-    menu.draw_viewer_menu();
-    static bool shouldDrawDisplacedMesh = false;
+void Drawer::setBeamColors(const string drawingDataID,
+                           const Eigen::MatrixX3d colors,
+                           Viewer &viewer) const {
+  assert(!beamVerticesColors.empty());
+  viewer.setColors(drawingDataID, colors);
+}
 
-    // Add new group
-    if (ImGui::CollapsingHeader("Simulation Results",
-                                ImGuiTreeNodeFlags_DefaultOpen)) {
-      if (ImGui::Checkbox("Show displaced mesh", &shouldDrawDisplacedMesh)) {
-        assert(viewer.data_list.size() == 2);
-        viewer.data_list[1].set_visible(shouldDrawDisplacedMesh);
-        viewer.data_list[0].set_visible(!shouldDrawDisplacedMesh);
+void Drawer::computeBeamColors(const Eigen::Vector3d &edgeVertex1,
+                               const Eigen::Vector3d &edgeVertex2,
+                               const Eigen::MatrixX3d &beamVertices,
+                               Eigen::MatrixX3d &beamVerticesColors) const {
+  beamVerticesColors.resize(beamVertices.rows(), 3);
+}
+
+void Drawer::computeBeamColors(const Eigen::MatrixX3d &edgeVertices,
+                               const Eigen::MatrixX3d &beamVertices,
+                               const Eigen::MatrixXd &edgeVerticesColors,
+                               Eigen::MatrixX3d beamVerticesColors) const {}
+
+void Drawer::addDrawingData(Viewer &viewer, const string &dataIdentifier,
+                            const ViewerData &drawingData) {
+  //  drawAxis(viewer);
+
+  //  IGLMesh iglMesh = vcgMesh.getIGLMesh();
+  //  addMesh(iglMesh.vertices, iglMesh.triFaces, true,
+  //  DataIndices::OriginalMesh,
+  //          viewer);
+
+  //  Eigen::MatrixX3d displacedVertices;
+  //  computeDisplacedVertices(iglMesh.vertices, vertexDisplacements,
+  //                           displacedVertices);
+  //  addMesh(displacedVertices, iglMesh.triFaces, false,
+  //          DataIndices::DisplacedMesh, viewer);
+}
+
+void Drawer::drawEdges(const string &drawingDataID,
+                       const Eigen::MatrixX3d &edgeStartPoints,
+                       const Eigen::MatrixX3d &edgeEndPoints,
+                       const Eigen::MatrixX3d &colors, Viewer &viewer) const {
+  ViewerData drawingData;
+  generateDrawingData(edgeStartPoints, edgeEndPoints, colors, drawingData);
+  viewer.addDrawingData(drawingDataID, drawingData);
+}
+
+void Drawer::computeBeamColors(const Eigen::MatrixX3d &edgeVertices,
+                               const Eigen::MatrixX2i &edges,
+                               const std::vector<Eigen::MatrixXd> &edgeColors,
+                               const Eigen::MatrixX3d &beamMeshVertices) {
+  beamVerticesColors.clear();
+  const int numDoF = 6;
+  beamVerticesColors.resize(numDoF);
+  const int numberOfEdges = edges.rows();
+  const int numberOfVerticesPerBeam = beamMeshVertices.rows() / numberOfEdges;
+  for (int forceComponentIndex = NodalForceComponent::Fx;
+       forceComponentIndex < numDoF; forceComponentIndex++) {
+    beamVerticesColors[forceComponentIndex].resize(beamMeshVertices.rows(), 3);
+    for (int edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
+      const int vertexIndex0 = edges(edgeIndex, 0);
+      const int vertexIndex1 = edges(edgeIndex, 1);
+      const Eigen::Vector3d &p0 = edgeVertices.row(vertexIndex0);
+      const Eigen::Vector3d &p1 = edgeVertices.row(vertexIndex1);
+      const Eigen::Vector3d &edgeV0Color =
+          edgeColors[forceComponentIndex].row(2 * edgeIndex);
+      const Eigen::Vector3d &edgeV1Color =
+          edgeColors[forceComponentIndex].row(2 * edgeIndex + 1);
+      for (int beamVertexIndex = 0; beamVertexIndex < numberOfVerticesPerBeam;
+           beamVertexIndex++) {
+        const Eigen::Vector3d &p = beamMeshVertices.row(
+            numberOfVerticesPerBeam * edgeIndex + beamVertexIndex);
+        const bool isOnTheSideOfP0 = Eigen::Vector3d(p - p0).squaredNorm() <
+                                     Eigen::Vector3d(p - p1).squaredNorm();
+
+        if (isOnTheSideOfP0) {
+          beamVerticesColors[forceComponentIndex].row(
+              numberOfVerticesPerBeam * edgeIndex + beamVertexIndex) =
+              edgeV0Color;
+        } else {
+          beamVerticesColors[forceComponentIndex].row(
+              numberOfVerticesPerBeam * edgeIndex + beamVertexIndex) =
+              edgeV1Color;
+        }
       }
-      enum ChosenForce { Fx = 0, Fy, Fz, Mx, My, Mz };
-      static ChosenForce force = Fx;
-      ImGui::Combo("Force visualization", reinterpret_cast<int *>(&force),
-                   "Fx\0Fy\0Fz\0Mx\0My\0Mz\0");
-      viewer.data_list[1].set_colors(
-          verticesColors[static_cast<size_t>(force)]);
     }
-  };
-}
-
-void SimulationResultsDrawer::computeDisplacedVertices(
-    const Eigen::MatrixX3d &vertices, Eigen::MatrixX3d &displacedVertices,
-    const float displacementFactor = 30) const {
-  displacedVertices = vertices;
-  for (size_t vertexIndex = 0;
-       vertexIndex < static_cast<size_t>(vertices.rows()); vertexIndex++) {
-    displacedVertices.row(static_cast<Eigen::Index>(vertexIndex)) +=
-        displacementFactor *
-        Eigen::Vector3d(vertexDisplacements[vertexIndex][0],
-                        vertexDisplacements[vertexIndex][1],
-                        vertexDisplacements[vertexIndex][2]);
   }
 }
 
-SimulationResultsDrawer::SimulationResultsDrawer(
-    const VCGMesh &m, std::vector<std::vector<double>> &vDisplacements,
-    std::vector<std::vector<double>> &vForces)
-    : vcgMesh(m), vertexDisplacements(vDisplacements) {
-  computeVerticesColors(vForces);
+void Drawer::setEdgeColors(const string &drawingDataID,
+                           const float &edgeThickness, int colorIndex,
+                           Viewer &viewer) const {
+  assert(viewer.hasDrawingData(drawingDataID));
+  if (edgeThickness > edgeThicknessEpsilon) {
+    setBeamColors(drawingDataID,
+                  beamVerticesColors[static_cast<size_t>(colorIndex)], viewer);
+  } else {
+    std::cout << "Edges are not considered beams. Not setting colors."
+              << std::endl;
+  }
 }
 
-void SimulationResultsDrawer::draw() const {
-  igl::opengl::glfw::Viewer viewer;
-  viewer.data_list.clear();
-  Eigen::MatrixX3d vertices;
-  Eigen::MatrixX3i triFaces;
-  vcgToEigenMesh(vcgMesh, vertices, triFaces);
-  addMesh(vertices, triFaces, true, viewer);
-  Eigen::MatrixX3d displacedVertices;
-  computeDisplacedVertices(vertices, displacedVertices);
-  addMesh(displacedVertices, triFaces, false, viewer);
-  igl::opengl::glfw::imgui::ImGuiMenu menu;
-  createMenu(viewer, menu);
-  viewer.plugins.push_back(&menu);
-
-  viewer.launch();
+void Drawer::drawBeamMesh(const std::string drawingDataID,
+                          const VCGEdgeMesh &edgeMesh,
+                          const float &edgeThickness, Viewer &viewer) const {
+  if (edgeMesh.IsEmpty()) {
+    cerr << "Error: No edge mesh is given. Beam mesh can't be rendered."
+         << std::endl;
+    return;
+  }
+  assert(!viewer.hasDrawingData(drawingDataID));
+  VCGTriMesh beamMesh;
+  edgeMesh.getBeamMesh(edgeThickness, beamMesh);
+  IGLMesh iglBeamMesh = beamMesh.getIGLMesh();
+  ViewerData drawingData;
+  generateDrawingData(iglBeamMesh.vertices, iglBeamMesh.triFaces, drawingData);
+  viewer.addDrawingData(drawingDataID, drawingData);
+  viewer.setDrawingDataVisibility(drawingDataID, true);
 }
+
+void Drawer::setVertices(const std::string drawingDataID,
+                         const Eigen::MatrixX3d &newPositions,
+                         Viewer &viewer) const {
+  ViewerData &drawingData = viewer.getDrawingData(drawingDataID);
+  assert(drawingData.V.rows() == newPositions.rows());
+  drawingData.set_vertices(newPositions);
+  //  viewer.draw();
+}
+
+void Drawer::setEdgePositions(const string &drawingDataID,
+                              const Eigen::MatrixX3d &newPositions,
+                              Viewer &viewer) const {
+  ViewerData &drawingData = viewer.getDrawingData(drawingDataID);
+  Eigen::MatrixXd &lines = drawingData.lines;
+}
+
+Drawer::Drawer() {}

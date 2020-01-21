@@ -1,66 +1,85 @@
 #ifndef BEAMSIMULATOR_HPP
 #define BEAMSIMULATOR_HPP
 
-#include <vector>
-
+#include "beam.hpp"
 #include "mesh.hpp"
 #include <threed_beam_fea.h>
-
-struct BeamProperties {
-  double EA;
-  double EIz;
-  double EIy;
-  double GJ;
-
-  BeamProperties() {
-    const double crossArea = 0.001; //(m^2)
-    const double I2 =
-        4.189828 * std::pow(10, -8); //(m^3) I2=I3 for round section
-    const double I3 = 4.189828 * std::pow(10, -8);           //(m^3)
-    const double polarInertia = 8.379656 * std::pow(10, -8); //(m^3)
-    const double ni = 0.3;
-    const double youngsModulus = 210000000; //(kN/m^2)
-    const double G = youngsModulus / (2 * (1 + ni));
-
-    // Properties used by fea
-    EA = youngsModulus * crossArea; // Young's modulus * cross
-    EIz = youngsModulus * I3;       // Young's modulus* I3
-    EIy = youngsModulus * I2;       // Young's modulus* I2
-    GJ = G * polarInertia;          // G * Polar Inertia
-  }
-};
+#include <vector>
 
 struct SimulationOptions {
-  BeamProperties beamProperties;
   std::vector<int> fixedVertices;
   std::vector<std::vector<int>> nodalForces;
-  std::string nodalDisplacementsOutputFilepath;
-  std::string nodalForcesOutputFilepath;
   SimulationOptions() {}
 };
 
-class BeamSimulator {
+struct BeamSimulationProperties {
+  float crossArea;
+  float I2;
+  float I3;
+  float polarInertia;
+  float G;
+  // Properties used by fea
+  float EA;
+  float EIz;
+  float EIy;
+  float GJ;
 
-  const VCGMesh &mesh;
+  BeamSimulationProperties(const BeamDimensions &dimensions,
+                           const BeamMaterial &material) {
+    crossArea = (dimensions.b * dimensions.h);
+    I2 = (dimensions.b * std::pow(dimensions.h, 3) / 12);
+    I3 = (dimensions.h * std::pow(dimensions.b, 3) / 12);
+    polarInertia = (I2 + I3);
+    G = (material.youngsModulusGPascal * std::pow(10, 9) /
+         (2 * (1 + material.poissonsRatio)));
+    EA = (material.youngsModulusGPascal * std::pow(10, 9) * crossArea);
+    EIz = (material.youngsModulusGPascal * std::pow(10, 9) * I3);
+    EIy = (material.youngsModulusGPascal * std::pow(10, 9) * I2);
+    GJ = (G * polarInertia);
+  }
+};
+
+struct NodalForce {
+  size_t index;
+  int dof;
+  double magnitude;
+};
+
+class BeamSimulator {
+private:
   std::vector<fea::Elem> elements;
   std::vector<fea::Node> nodes;
   std::vector<fea::BC> boundaryConditions;
   std::vector<fea::Force> nodalForces;
-  const SimulationOptions &properties;
+  std::vector<Eigen::Vector3d> nodeNormals;
+  std::string nodalDisplacementsOutputFilepath;
+  std::string nodalForcesOutputFilepath;
+  fea::Summary results;
 
-  void setNodes(const std::vector<fea::Node> &nodes);
-  void setElements(const std::vector<fea::Elem> &elements);
-  void populateNodes(const VCGMesh &mesh);
-  void populateElements(const VCGMesh &mesh);
-  void fixVertices(const std::vector<int> vertices);
-  void setNodalForces(const std::vector<std::vector<int>> vertexForces);
   static void printInfo(const fea::Job &job);
   void reset();
+  void setMesh(VCGTriMesh &mesh);
+  void setNodes(const Eigen::MatrixX3d &nodes);
+  void setElements(const Eigen::MatrixX2i &elements,
+                   const Eigen::MatrixX3d &elementNormals,
+                   const std::vector<BeamDimensions> &beamDimensions,
+                   const std::vector<BeamMaterial> &beamMaterial);
+  void setFixedNodes(const Eigen::VectorXi &fixedNodes);
+  void setNodalForces(const std::vector<NodalForce> &nodalForces);
+  void setNodeNormals(const Eigen::MatrixX3d &nodeNormals);
 
 public:
-  BeamSimulator(const VCGMesh &m, const SimulationOptions &props);
+  BeamSimulator();
 
   fea::Summary executeSimulation();
+  fea::Summary getResults() const;
+  void setSimulation(const Eigen::MatrixX3d &nodes,
+                     const Eigen::MatrixX2i &elements,
+                     const Eigen::MatrixX3d &edgeNormals,
+                     const Eigen::VectorXi &fixedNodes,
+                     const std::vector<NodalForce> &nodalForces,
+                     const std::vector<BeamDimensions> &beamDimensions,
+                     const std::vector<BeamMaterial> &beamMaterial);
 };
 
 #endif // BEAMSIMULATOR_HPP
