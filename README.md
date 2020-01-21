@@ -1,6 +1,6 @@
 # MeshBeamFEA
 
-A tool that to model a triangular mesh using the Euler-Bernoulli beam theory and executes a simulation on it which can be configured using a json file. Displacements and forces are exported in a csv file.
+A tool for modeling edge meshes using the Euler-Bernoulli beam theory and for executing a fea simulation on it. Displacements and forces are visualized.
 
 ### Prerequisites
 
