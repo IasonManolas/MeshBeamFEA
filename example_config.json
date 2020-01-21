@@ -1,9 +1,0 @@
-{
-	"plyFilename": "/home/iason/Coding/Projects/Euler-Bernoulli Beam simulation/models/tetrahedron.ply",
-	"nodalDisplacementsCSV": "./displacements_results.csv",
-	"nodalForcesCSV": "./forces_results.csv",
-	"fixedVertices": [1,2,3],
-	"forces": [[0,0,1000]]
-}
-
-
