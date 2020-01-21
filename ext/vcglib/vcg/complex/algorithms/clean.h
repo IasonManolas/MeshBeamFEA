@@ -33,6 +33,7 @@
 #include <vcg/space/index/spatial_hashing.h>
 #include <vcg/complex/algorithms/update/normal.h>
 #include <vcg/space/triangle3.h>
+#include <vcg/complex/append.h>
 
 namespace vcg {
 namespace tri{
@@ -634,7 +635,8 @@ public:
 					do
 					{
 						faceSet.insert(std::make_pair(curPos.F(),curPos.VInd()));
-						curPos.NextE();
+						curPos.FlipE();
+						curPos.NextF();
 					} while (curPos != startPos);
 
 					ToSplitVec.push_back(make_pair((*fi).V(i),std::vector<FaceInt>()));
@@ -669,6 +671,58 @@ public:
 		}
 
 		return int(ToSplitVec.size());
+	}
+
+	/// \brief This function expand current selection to cover the whole connected component.
+	static size_t SplitManifoldComponents(MeshType &m)
+	{
+		typedef typename MeshType::FacePointer FacePointer;
+		typedef typename MeshType::FaceIterator FaceIterator;
+		// it also assumes that the FF adjacency is well computed.
+		RequireFFAdjacency(m);
+
+		UpdateFlags<MeshType>::FaceClearV(m);
+		UpdateFlags<MeshType>::FaceClearS(m);
+
+		MeshType tmpMesh;
+
+		size_t selCnt=0;
+
+		for(FaceIterator fi = m.face.begin(); fi != m.face.end(); ++fi)
+			if( !(*fi).IsD() && !(*fi).IsV() && !(*fi).IsS())
+			{
+				UpdateFlags<MeshType>::FaceClearS(m);
+
+				std::deque<FacePointer> visitStack;
+				visitStack.push_back(&*fi);
+
+				(*fi).SetS();
+				(*fi).SetV();
+
+				while(!visitStack.empty())
+				{
+					FacePointer fp = visitStack.front();
+					visitStack.pop_front();
+
+					for(int i=0;i<fp->VN();++i) {
+						FacePointer ff = fp->FFp(i);
+
+						if(face::IsManifold(*fp, i) && !ff->IsS() && !ff->IsV())
+						{
+							ff->SetS();
+							ff->SetV();
+							visitStack.push_back(ff);
+						}
+					}
+				}
+
+				Append<MeshType, MeshType>::Mesh(tmpMesh, m, true);
+				++selCnt;
+			}
+
+		UpdateSelection<MeshType>::Clear(tmpMesh);
+		Append<MeshType, MeshType>::MeshCopy(m, tmpMesh);
+		return selCnt;
 	}
 
 
@@ -1014,10 +1068,10 @@ public:
 	   * e.g. the vertices with a non 2-manif. neighbourhood but that do not belong to not 2-manif edges.
 	   * typical situation two cones connected by one vertex.
 	   */
-	static int CountNonManifoldVertexFF( MeshType & m, bool selectVert = true )
+	static int CountNonManifoldVertexFF( MeshType & m, bool selectVert = true, bool clearSelection = true)
 	{
 		RequireFFAdjacency(m);
-		if(selectVert) UpdateSelection<MeshType>::VertexClear(m);
+		if(selectVert && clearSelection) UpdateSelection<MeshType>::VertexClear(m);
 
 		int nonManifoldCnt=0;
 		SimpleTempData<typename MeshType::VertContainer, int > TD(m.vert,0);

@@ -25,7 +25,7 @@
 
 #ifndef __VCG_MESH
 #error                                                                         \
-  "This file should not be included alone. It is automatically included by complex.h"
+    "This file should not be included alone. It is automatically included by complex.h"
 #endif
 
 namespace vcg {
@@ -34,119 +34,84 @@ namespace tri {
 @{
 */
 
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::VertexType& v)
-{
+template <class MeshType>
+size_t Index(MeshType &m, const typename MeshType::VertexType &v) {
   return &v - &*m.vert.begin();
 }
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::FaceType& f)
-{
+template <class MeshType>
+size_t Index(MeshType &m, const typename MeshType::FaceType &f) {
   return &f - &*m.face.begin();
 }
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::EdgeType& e)
-{
+template <class MeshType>
+size_t Index(MeshType &m, const typename MeshType::EdgeType &e) {
   return &e - &*m.edge.begin();
 }
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::HEdgeType& h)
-{
+template <class MeshType>
+size_t Index(MeshType &m, const typename MeshType::HEdgeType &h) {
   return &h - &*m.hedge.begin();
 }
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::TetraType& t)
-{
+template <class MeshType>
+size_t Index(MeshType &m, const typename MeshType::TetraType &t) {
   return &t - &*m.tetra.begin();
 }
 
-template<class MeshType>
-size_t
-Index(const MeshType& m, const typename MeshType::VertexType* vp)
-{
+template <class MeshType>
+size_t Index(const MeshType &m, const typename MeshType::VertexType *vp) {
   return vp - &*m.vert.begin();
 }
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::FaceType* fp)
-{
+template <class MeshType>
+size_t Index(const MeshType &m, const typename MeshType::FaceType *fp) {
   return fp - &*m.face.begin();
 }
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::EdgeType* e)
-{
+template <class MeshType>
+size_t Index(const MeshType &m, const typename MeshType::EdgeType *e) {
   return e - &*m.edge.begin();
 }
-template<class MeshType>
-size_t
-Index(MeshType& m, const typename MeshType::HEdgeType* h)
-{
+template <class MeshType>
+size_t Index(const MeshType &m, const typename MeshType::HEdgeType *h) {
   return h - &*m.hedge.begin();
 }
-template<class MeshType>
-size_t
-Index(const MeshType& m, const typename MeshType::TetraType* t)
-{
+template <class MeshType>
+size_t Index(const MeshType &m, const typename MeshType::TetraType *t) {
   return t - &*m.tetra.begin();
 }
 
-template<class MeshType>
-bool
-IsValidPointer(MeshType& m, const typename MeshType::VertexType* vp)
-{
+template <class MeshType>
+bool IsValidPointer(MeshType &m, const typename MeshType::VertexType *vp) {
   return (m.vert.size() > 0 && (vp >= &*m.vert.begin()) &&
           (vp <= &m.vert.back()));
 }
-template<class MeshType>
-bool
-IsValidPointer(MeshType& m, const typename MeshType::EdgeType* ep)
-{
+template <class MeshType>
+bool IsValidPointer(MeshType &m, const typename MeshType::EdgeType *ep) {
   return (m.edge.size() > 0 && (ep >= &*m.edge.begin()) &&
           (ep <= &m.edge.back()));
 }
-template<class MeshType>
-bool
-IsValidPointer(MeshType& m, const typename MeshType::FaceType* fp)
-{
+template <class MeshType>
+bool IsValidPointer(MeshType &m, const typename MeshType::FaceType *fp) {
   return (m.face.size() > 0 && (fp >= &*m.face.begin()) &&
           (fp <= &m.face.back()));
 }
-template<class MeshType>
-bool
-IsValidPointer(MeshType& m, const typename MeshType::HEdgeType* hp)
-{
+template <class MeshType>
+bool IsValidPointer(MeshType &m, const typename MeshType::HEdgeType *hp) {
   return (m.hedge.size() > 0 && (hp >= &*m.hedge.begin()) &&
           (hp <= &m.hedge.back()));
 }
-template<class MeshType>
-bool
-IsValidPointer(MeshType& m, const typename MeshType::TetraType* tp)
-{
+template <class MeshType>
+bool IsValidPointer(MeshType &m, const typename MeshType::TetraType *tp) {
   return (m.tetra.size() > 0 && (tp >= &*m.tetra.begin()) &&
           (tp <= &m.tetra.back()));
 }
 
-template<class MeshType, class ATTR_CONT>
-void
-ReorderAttribute(ATTR_CONT& c,
-                 std::vector<size_t>& newVertIndex,
-                 MeshType& /* m */)
-{
+template <class MeshType, class ATTR_CONT>
+void ReorderAttribute(ATTR_CONT &c, std::vector<size_t> &newVertIndex,
+                      MeshType & /* m */) {
   typename std::set<typename MeshType::PointerToAttribute>::iterator ai;
   for (ai = c.begin(); ai != c.end(); ++ai)
     ((typename MeshType::PointerToAttribute)(*ai)).Reorder(newVertIndex);
 }
 
-template<class MeshType, class ATTR_CONT>
-void
-ResizeAttribute(ATTR_CONT& c, size_t sz, MeshType& /*m*/)
-{
+template <class MeshType, class ATTR_CONT>
+void ResizeAttribute(ATTR_CONT &c, size_t sz, MeshType & /*m*/) {
   typename std::set<typename MeshType::PointerToAttribute>::iterator ai;
   for (ai = c.begin(); ai != c.end(); ++ai)
     ((typename MeshType::PointerToAttribute)(*ai)).Resize(sz);
@@ -161,9 +126,7 @@ ResizeAttribute(ATTR_CONT& c, size_t sz, MeshType& /*m*/)
    vcg::tri::PointerUpdater for updating pointers to mesh elements that are kept
    by the user.
         */
-template<class MeshType>
-class Allocator
-{
+template <class MeshType> class Allocator {
 
 public:
   typedef typename MeshType::VertexType VertexType;
@@ -196,7 +159,7 @@ public:
   typedef typename MeshType::PointerToAttribute PointerToAttribute;
   typedef typename std::set<PointerToAttribute>::iterator AttrIterator;
   typedef
-    typename std::set<PointerToAttribute>::const_iterator AttrConstIterator;
+      typename std::set<PointerToAttribute>::const_iterator AttrConstIterator;
   typedef typename std::set<PointerToAttribute>::iterator PAIte;
 
   /*!
@@ -213,21 +176,14 @@ public:
      can be useful in case you are building all the internal connections by hand
      as it happens in a importer; \sa \ref allocation
             */
-  template<class SimplexPointerType>
-  class PointerUpdater
-  {
+  template <class SimplexPointerType> class PointerUpdater {
   public:
     PointerUpdater(void)
-      : newBase(0)
-      , oldBase(0)
-      , newEnd(0)
-      , oldEnd(0)
-      , preventUpdateFlag(false)
-    {
+        : newBase(0), oldBase(0), newEnd(0), oldEnd(0),
+          preventUpdateFlag(false) {
       ;
     }
-    void Clear()
-    {
+    void Clear() {
       newBase = oldBase = newEnd = oldEnd = 0;
       remap.clear();
     }
@@ -236,8 +192,7 @@ public:
              The updating is correctly done only if this PointerUpdater have
        been passed to the corresponing allocation call. \sa \ref allocation
              */
-    void Update(SimplexPointerType& vp)
-    {
+    void Update(SimplexPointerType &vp) {
       // if(vp>=newBase && vp<newEnd) return;
       if (vp < oldBase || vp > oldEnd)
         return;
@@ -251,8 +206,7 @@ public:
   \brief return true if the allocation operation that initialized this
   PointerUpdater has caused a reallocation
   */
-    bool NeedUpdate()
-    {
+    bool NeedUpdate() {
       if ((oldBase && newBase != oldBase && !preventUpdateFlag) ||
           !remap.empty())
         return true;
@@ -265,9 +219,9 @@ public:
     SimplexPointerType newEnd;
     SimplexPointerType oldEnd;
     std::vector<size_t>
-      remap; // this vector keep the new position of an element. Uninitialized
-             // elements have max_int value to denote an element that has not to
-             // be remapped.
+        remap; // this vector keep the new position of an element. Uninitialized
+               // elements have max_int value to denote an element that has not
+               // to be remapped.
 
     bool preventUpdateFlag; /// when true no update is considered necessary.
   };
@@ -285,10 +239,8 @@ public:
      update pointers to vertices that could have become invalid after this
      adding. \retval the iterator to the first element added.
             */
-  static VertexIterator AddVertices(MeshType& m,
-                                    size_t n,
-                                    PointerUpdater<VertexPointer>& pu)
-  {
+  static VertexIterator AddVertices(MeshType &m, size_t n,
+                                    PointerUpdater<VertexPointer> &pu) {
     VertexIterator last;
     if (n == 0)
       return m.vert.end();
@@ -296,7 +248,7 @@ public:
 
     if (m.vert.empty())
       pu.oldBase =
-        0; // if the vector is empty we cannot find the last valid element
+          0; // if the vector is empty we cannot find the last valid element
     else {
       pu.oldBase = &*m.vert.begin();
       pu.oldEnd = &m.vert.back() + 1;
@@ -324,7 +276,7 @@ public:
           pu.Update((*ei).V(0));
           pu.Update((*ei).V(1));
           //							if(HasEVAdjacency(m))
-          // pu.Update((*ei).EVp());
+          //pu.Update((*ei).EVp());
         }
 
       HEdgeIterator hi;
@@ -353,8 +305,7 @@ public:
 
   /** \brief Wrapper to AddVertices(); no PointerUpdater
    */
-  static VertexIterator AddVertices(MeshType& m, size_t n)
-  {
+  static VertexIterator AddVertices(MeshType &m, size_t n) {
     PointerUpdater<VertexPointer> pu;
     return AddVertices(m, n, pu);
   }
@@ -362,14 +313,12 @@ public:
   /** \brief Wrapper to AddVertices() no PointerUpdater but a vector of
    * VertexPointer pointers to be updated
    */
-  static VertexIterator AddVertices(MeshType& m,
-                                    size_t n,
-                                    std::vector<VertexPointer*>& local_vec)
-  {
+  static VertexIterator AddVertices(MeshType &m, size_t n,
+                                    std::vector<VertexPointer *> &local_vec) {
     PointerUpdater<VertexPointer> pu;
     VertexIterator v_ret = AddVertices(m, n, pu);
 
-    typename std::vector<VertexPointer*>::iterator vi;
+    typename std::vector<VertexPointer *>::iterator vi;
     for (vi = local_vec.begin(); vi != local_vec.end(); ++vi)
       pu.Update(**vi);
     return v_ret;
@@ -377,8 +326,7 @@ public:
 
   /** \brief Wrapper to AddVertices() to add a single vertex with given coords
    */
-  static VertexIterator AddVertex(MeshType& m, const CoordType& p)
-  {
+  static VertexIterator AddVertex(MeshType &m, const CoordType &p) {
     VertexIterator v_ret = AddVertices(m, 1);
     v_ret->P() = p;
     return v_ret;
@@ -387,10 +335,8 @@ public:
   /** \brief Wrapper to AddVertices() to add a single vertex with given coords
    * and normal
    */
-  static VertexIterator AddVertex(MeshType& m,
-                                  const CoordType& p,
-                                  const CoordType& n)
-  {
+  static VertexIterator AddVertex(MeshType &m, const CoordType &p,
+                                  const CoordType &n) {
     VertexIterator v_ret = AddVertices(m, 1);
     v_ret->P() = p;
     v_ret->N() = n;
@@ -400,10 +346,8 @@ public:
   /** \brief Wrapper to AddVertices() to add a single vertex with given coords
    * and color
    */
-  static VertexIterator AddVertex(MeshType& m,
-                                  const CoordType& p,
-                                  const Color4b& c)
-  {
+  static VertexIterator AddVertex(MeshType &m, const CoordType &p,
+                                  const Color4b &c) {
     VertexIterator v_ret = AddVertices(m, 1);
     v_ret->P() = p;
     v_ret->C() = c;
@@ -421,16 +365,14 @@ public:
      to edges that could have become invalid after this adding. \retval the
      iterator to the first element added.
             */
-  static EdgeIterator AddEdges(MeshType& m,
-                               size_t n,
-                               PointerUpdater<EdgePointer>& pu)
-  {
+  static EdgeIterator AddEdges(MeshType &m, size_t n,
+                               PointerUpdater<EdgePointer> &pu) {
     if (n == 0)
       return m.edge.end();
     pu.Clear();
     if (m.edge.empty())
       pu.oldBase =
-        0; // if the vector is empty we cannot find the last valid element
+          0; // if the vector is empty we cannot find the last valid element
     else {
       pu.oldBase = &*m.edge.begin();
       pu.oldEnd = &m.edge.back() + 1;
@@ -485,8 +427,7 @@ public:
   /** Function to add a single edge to the mesh. and initializing it with two
    * VertexPointer
    */
-  static EdgeIterator AddEdge(MeshType& m, VertexPointer v0, VertexPointer v1)
-  {
+  static EdgeIterator AddEdge(MeshType &m, VertexPointer v0, VertexPointer v1) {
     EdgeIterator ei = AddEdges(m, 1);
     ei->V(0) = v0;
     ei->V(1) = v1;
@@ -496,8 +437,7 @@ public:
   /** Function to add a single edge to the mesh. and initializing it with two
    * indexes to the vertexes
    */
-  static EdgeIterator AddEdge(MeshType& m, size_t v0, size_t v1)
-  {
+  static EdgeIterator AddEdge(MeshType &m, size_t v0, size_t v1) {
     assert(v0 != v1);
     assert(v0 >= 0 && v0 < m.vert.size());
     assert(v1 >= 0 && v1 < m.vert.size());
@@ -507,8 +447,7 @@ public:
   /** Function to add a face to the mesh and initializing it with the three
    * given coords
    */
-  static EdgeIterator AddEdge(MeshType& m, CoordType p0, CoordType p1)
-  {
+  static EdgeIterator AddEdge(MeshType &m, CoordType p0, CoordType p1) {
     VertexIterator vi = AddVertices(m, 2);
     EdgeIterator ei = AddEdges(m, 1);
     vi->P() = p0;
@@ -521,8 +460,7 @@ public:
   /** Function to add n edges to the mesh.
             First wrapper, with no parameters
             */
-  static EdgeIterator AddEdges(MeshType& m, size_t n)
-  {
+  static EdgeIterator AddEdges(MeshType &m, size_t n) {
     PointerUpdater<EdgePointer> pu;
     return AddEdges(m, n, pu);
   }
@@ -530,14 +468,12 @@ public:
   /** Function to add n edges to the mesh.
             Second Wrapper, with a vector of vertex pointers to be updated.
             */
-  static EdgeIterator AddEdges(MeshType& m,
-                               size_t n,
-                               std::vector<EdgePointer*>& local_vec)
-  {
+  static EdgeIterator AddEdges(MeshType &m, size_t n,
+                               std::vector<EdgePointer *> &local_vec) {
     PointerUpdater<EdgePointer> pu;
     EdgeIterator v_ret = AddEdges(m, n, pu);
 
-    typename std::vector<EdgePointer*>::iterator ei;
+    typename std::vector<EdgePointer *>::iterator ei;
     for (ei = local_vec.begin(); ei != local_vec.end(); ++ei)
       pu.Update(**ei);
     return v_ret;
@@ -553,17 +489,15 @@ public:
      edges that could have become invalid after this adding. \retval the
      iterator to the first element added.
             */
-  static HEdgeIterator AddHEdges(MeshType& m,
-                                 size_t n,
-                                 PointerUpdater<HEdgePointer>& pu)
-  {
+  static HEdgeIterator AddHEdges(MeshType &m, size_t n,
+                                 PointerUpdater<HEdgePointer> &pu) {
     HEdgeIterator last;
     if (n == 0)
       return m.hedge.end();
     pu.Clear();
     if (m.hedge.empty())
       pu.oldBase =
-        0; // if the vector is empty we cannot find the last valid element
+          0; // if the vector is empty we cannot find the last valid element
     else {
       pu.oldBase = &*m.hedge.begin();
       pu.oldEnd = &m.hedge.back() + 1;
@@ -620,8 +554,7 @@ public:
   /** Function to add n vertices to the mesh.
             First wrapper, with no parameters
             */
-  static HEdgeIterator AddHEdges(MeshType& m, size_t n)
-  {
+  static HEdgeIterator AddHEdges(MeshType &m, size_t n) {
     PointerUpdater<HEdgePointer> pu;
     return AddHEdges(m, n, pu);
   }
@@ -629,14 +562,12 @@ public:
   /** Function to add n vertices to the mesh.
             Second Wrapper, with a vector of vertex pointers to be updated.
             */
-  static HEdgeIterator AddHEdges(MeshType& m,
-                                 size_t n,
-                                 std::vector<HEdgePointer*>& local_vec)
-  {
+  static HEdgeIterator AddHEdges(MeshType &m, size_t n,
+                                 std::vector<HEdgePointer *> &local_vec) {
     PointerUpdater<HEdgePointer> pu;
     HEdgeIterator v_ret = AddHEdges(m, n, pu);
 
-    typename std::vector<HEdgePointer*>::iterator ei;
+    typename std::vector<HEdgePointer *>::iterator ei;
     for (ei = local_vec.begin(); ei != local_vec.end(); ++ei)
       pu.Update(**ei);
     return v_ret;
@@ -647,11 +578,8 @@ public:
   /** Function to add a face to the mesh and initializing it with the three
    * given VertexPointers
    */
-  static FaceIterator AddFace(MeshType& m,
-                              VertexPointer v0,
-                              VertexPointer v1,
-                              VertexPointer v2)
-  {
+  static FaceIterator AddFace(MeshType &m, VertexPointer v0, VertexPointer v1,
+                              VertexPointer v2) {
     assert(m.vert.size() > 0);
     assert((v0 != v1) && (v1 != v2) && (v0 != v2));
     assert(v0 >= &m.vert.front() && v0 <= &m.vert.back());
@@ -668,8 +596,7 @@ public:
 
   /** Function to add a face to the mesh and initializing it with three indexes
    */
-  static FaceIterator AddFace(MeshType& m, size_t v0, size_t v1, size_t v2)
-  {
+  static FaceIterator AddFace(MeshType &m, size_t v0, size_t v1, size_t v2) {
     assert((v0 != v1) && (v1 != v2) && (v0 != v2));
     assert(v0 >= 0 && v0 < m.vert.size());
     assert(v1 >= 0 && v1 < m.vert.size());
@@ -679,11 +606,8 @@ public:
   /** Function to add a face to the mesh and initializing it with the three
    * given coords
    */
-  static FaceIterator AddFace(MeshType& m,
-                              CoordType p0,
-                              CoordType p1,
-                              CoordType p2)
-  {
+  static FaceIterator AddFace(MeshType &m, CoordType p0, CoordType p1,
+                              CoordType p2) {
     VertexIterator vi = AddVertices(m, 3);
     FaceIterator fi = AddFaces(m, 1);
     fi->Alloc(3);
@@ -703,12 +627,9 @@ public:
    * polygonal info or two tris with the corresponding faux bit set in the
    * standard common case of a triangular mesh.
    */
-  static FaceIterator AddQuadFace(MeshType& m,
-                                  VertexPointer v0,
-                                  VertexPointer v1,
-                                  VertexPointer v2,
-                                  VertexPointer v3)
-  {
+  static FaceIterator AddQuadFace(MeshType &m, VertexPointer v0,
+                                  VertexPointer v1, VertexPointer v2,
+                                  VertexPointer v3) {
     assert(m.vert.size() > 0);
     assert(v0 >= &m.vert.front() && v0 <= &m.vert.back());
     assert(v1 >= &m.vert.front() && v1 <= &m.vert.back());
@@ -742,8 +663,7 @@ public:
   /** \brief Function to add n faces to the mesh.
             First wrapper, with no parameters
             */
-  static FaceIterator AddFaces(MeshType& m, size_t n)
-  {
+  static FaceIterator AddFaces(MeshType &m, size_t n) {
     PointerUpdater<FacePointer> pu;
     return AddFaces(m, n, pu);
   }
@@ -751,14 +671,12 @@ public:
   /** \brief Function to add n faces to the mesh.
             Second Wrapper, with a vector of face pointer to be updated.
             */
-  static FaceIterator AddFaces(MeshType& m,
-                               size_t n,
-                               std::vector<FacePointer*>& local_vec)
-  {
+  static FaceIterator AddFaces(MeshType &m, size_t n,
+                               std::vector<FacePointer *> &local_vec) {
     PointerUpdater<FacePointer> pu;
     FaceIterator f_ret = AddFaces(m, n, pu);
 
-    typename std::vector<FacePointer*>::iterator fi;
+    typename std::vector<FacePointer *>::iterator fi;
     for (fi = local_vec.begin(); fi != local_vec.end(); ++fi)
       pu.Update(**fi);
     return f_ret;
@@ -776,10 +694,8 @@ public:
      update pointers to edges that could have become invalid after this adding.
             \retval the iterator to the first element added.
             */
-  static FaceIterator AddFaces(MeshType& m,
-                               size_t n,
-                               PointerUpdater<FacePointer>& pu)
-  {
+  static FaceIterator AddFaces(MeshType &m, size_t n,
+                               PointerUpdater<FacePointer> &pu) {
     pu.Clear();
     if (n == 0)
       return m.face.end();
@@ -815,7 +731,7 @@ public:
 
       if (HasPerVertexVFAdjacency(m) &&
           HasPerFaceVFAdjacency(
-            m)) { // cycle on all the faces except the new ones
+              m)) { // cycle on all the faces except the new ones
         for (FaceIterator fi = m.face.begin(); fi != firstNewFace; ++fi)
           if (!(*fi).IsD())
             for (int i = 0; i < (*fi).VN(); ++i)
@@ -844,7 +760,7 @@ public:
 
   //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   //:::::::::::::::::TETRAS ADDER
-  // FUNCTIONS:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  //FUNCTIONS:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
   /** \brief Function to add n tetras to the mesh.
             This is the only full featured function that is able to manage
@@ -858,10 +774,8 @@ public:
      tetras that could have become invalid after this adding. \retval the
      iterator to the first element added.
             */
-  static TetraIterator AddTetras(MeshType& m,
-                                 size_t n,
-                                 PointerUpdater<TetraPointer>& pu)
-  {
+  static TetraIterator AddTetras(MeshType &m, size_t n,
+                                 PointerUpdater<TetraPointer> &pu) {
     // nothing to do
     if (n == 0)
       return m.tetra.end();
@@ -926,12 +840,8 @@ public:
   /** Function to add a face to the mesh and initializing it with the three
    * given VertexPointers
    */
-  static TetraIterator AddTetra(MeshType& m,
-                                VertexPointer v0,
-                                VertexPointer v1,
-                                VertexPointer v2,
-                                VertexPointer v3)
-  {
+  static TetraIterator AddTetra(MeshType &m, VertexPointer v0, VertexPointer v1,
+                                VertexPointer v2, VertexPointer v3) {
     assert(m.vert.size() > 0);
     assert((v0 != v1) && (v0 != v2) && (v0 != v3) && (v1 != v2) && (v1 != v3) &&
            (v2 != v3));
@@ -956,12 +866,8 @@ public:
 
   /** Function to add a face to the mesh and initializing it with three indexes
    */
-  static TetraIterator AddTetra(MeshType& m,
-                                const size_t v0,
-                                const size_t v1,
-                                const size_t v2,
-                                const size_t v3)
-  {
+  static TetraIterator AddTetra(MeshType &m, const size_t v0, const size_t v1,
+                                const size_t v2, const size_t v3) {
     assert(m.vert.size() > 0);
     assert((v0 != v1) && (v0 != v2) && (v0 != v3) && (v1 != v2) && (v1 != v3) &&
            (v2 != v3));
@@ -970,18 +876,15 @@ public:
     assert(v2 >= 0 && v2 < m.vert.size());
     assert(v3 >= 0 && v3 < m.vert.size());
 
-    return AddTetra(
-      m, &(m.vert[v0]), &(m.vert[v1]), &(m.vert[v2]), &(m.vert[v3]));
+    return AddTetra(m, &(m.vert[v0]), &(m.vert[v1]), &(m.vert[v2]),
+                    &(m.vert[v3]));
   }
   /** Function to add a face to the mesh and initializing it with the three
    * given coords
    */
-  static TetraIterator AddTetra(MeshType& m,
-                                const CoordType& p0,
-                                const CoordType& p1,
-                                const CoordType& p2,
-                                const CoordType& p3)
-  {
+  static TetraIterator AddTetra(MeshType &m, const CoordType &p0,
+                                const CoordType &p1, const CoordType &p2,
+                                const CoordType &p3) {
     VertexIterator vi = AddVertices(m, 4);
 
     VertexPointer v0 = &*vi++;
@@ -1028,8 +931,7 @@ public:
   /** \brief Function to add n faces to the mesh.
             First wrapper, with no parameters
             */
-  static TetraIterator AddTetras(MeshType& m, size_t n)
-  {
+  static TetraIterator AddTetras(MeshType &m, size_t n) {
     PointerUpdater<TetraPointer> pu;
     return AddTetras(m, n, pu);
   }
@@ -1037,14 +939,12 @@ public:
   /** \brief Function to add n faces to the mesh.
             Second Wrapper, with a vector of face pointer to be updated.
             */
-  static TetraIterator AddTetras(MeshType& m,
-                                 size_t n,
-                                 std::vector<TetraPointer*>& local_vec)
-  {
+  static TetraIterator AddTetras(MeshType &m, size_t n,
+                                 std::vector<TetraPointer *> &local_vec) {
     PointerUpdater<TetraPointer> pu;
     TetraIterator t_ret = AddTetras(m, n, pu);
 
-    typename std::vector<TetraPointer*>::iterator ti;
+    typename std::vector<TetraPointer *>::iterator ti;
     for (ti = local_vec.begin(); ti != local_vec.end(); ++ti)
       pu.Update(**ti);
     return t_ret;
@@ -1055,8 +955,7 @@ public:
   /** Function to delete a face from the mesh.
             NOTE: THIS FUNCTION ALSO UPDATE FN
             */
-  static void DeleteFace(MeshType& m, FaceType& f)
-  {
+  static void DeleteFace(MeshType &m, FaceType &f) {
     assert(&f >= &m.face.front() && &f <= &m.face.back());
     assert(!f.IsD());
     f.Dealloc();
@@ -1067,8 +966,7 @@ public:
   /** Function to delete a vertex from the mesh.
             NOTE: THIS FUNCTION ALSO UPDATE vn
             */
-  static void DeleteVertex(MeshType& m, VertexType& v)
-  {
+  static void DeleteVertex(MeshType &m, VertexType &v) {
     assert(&v >= &m.vert.front() && &v <= &m.vert.back());
     assert(!v.IsD());
     v.SetD();
@@ -1078,8 +976,7 @@ public:
   /** Function to delete an edge from the mesh.
             NOTE: THIS FUNCTION ALSO UPDATE en
             */
-  static void DeleteEdge(MeshType& m, EdgeType& e)
-  {
+  static void DeleteEdge(MeshType &m, EdgeType &e) {
     assert(&e >= &m.edge.front() && &e <= &m.edge.back());
     assert(!e.IsD());
     e.SetD();
@@ -1089,8 +986,7 @@ public:
   /** Function to delete a hedge from the mesh.
             NOTE: THIS FUNCTION ALSO UPDATE en
            */
-  static void DeleteHEdge(MeshType& m, HEdgeType& h)
-  {
+  static void DeleteHEdge(MeshType &m, HEdgeType &h) {
     assert(&h >= &m.hedge.front() && &h <= &m.hedge.back());
     assert(!h.IsD());
     h.SetD();
@@ -1100,8 +996,7 @@ public:
   /** Function to delete a tetra from the mesh.
             NOTE: THIS FUNCTION ALSO UPDATE tn
            */
-  static void DeleteTetra(MeshType& m, TetraType& t)
-  {
+  static void DeleteTetra(MeshType &m, TetraType &t) {
     assert(&t >= &m.tetra.front() && &t <= &m.tetra.back());
     assert(!t.IsD());
     t.SetD();
@@ -1117,9 +1012,8 @@ public:
             e.g. newVertIndex[i] is the new index of the vertex i
 
            */
-  static void PermutateVertexVector(MeshType& m,
-                                    PointerUpdater<VertexPointer>& pu)
-  {
+  static void PermutateVertexVector(MeshType &m,
+                                    PointerUpdater<VertexPointer> &pu) {
     if (m.vert.empty())
       return;
     for (size_t i = 0; i < m.vert.size(); ++i) {
@@ -1192,8 +1086,7 @@ public:
       }
   }
 
-  static void CompactEveryVector(MeshType& m)
-  {
+  static void CompactEveryVector(MeshType &m) {
     CompactVertexVector(m);
     CompactEdgeVector(m);
     CompactFaceVector(m);
@@ -1210,9 +1103,8 @@ public:
         \warning It should not be called when TemporaryData is active (but works
      correctly if attributes are present)
         */
-  static void CompactVertexVector(MeshType& m,
-                                  PointerUpdater<VertexPointer>& pu)
-  {
+  static void CompactVertexVector(MeshType &m,
+                                  PointerUpdater<VertexPointer> &pu) {
     // If already compacted fast return please!
     if (m.vn == (int)m.vert.size())
       return;
@@ -1236,8 +1128,7 @@ public:
   }
 
   /*! \brief Wrapper without the PointerUpdater. */
-  static void CompactVertexVector(MeshType& m)
-  {
+  static void CompactVertexVector(MeshType &m) {
     PointerUpdater<VertexPointer> pu;
     CompactVertexVector(m, pu);
   }
@@ -1253,8 +1144,7 @@ public:
     \warning It should not be called when TemporaryData is active (but works
     correctly if attributes are present)
     */
-  static void CompactEdgeVector(MeshType& m, PointerUpdater<EdgePointer>& pu)
-  {
+  static void CompactEdgeVector(MeshType &m, PointerUpdater<EdgePointer> &pu) {
     // If already compacted fast return please!
     if (m.en == (int)m.edge.size())
       return;
@@ -1349,8 +1239,7 @@ public:
   }
 
   /*! \brief Wrapper without the PointerUpdater. */
-  static void CompactEdgeVector(MeshType& m)
-  {
+  static void CompactEdgeVector(MeshType &m) {
     PointerUpdater<EdgePointer> pu;
     CompactEdgeVector(m, pu);
   }
@@ -1365,8 +1254,7 @@ public:
     be called when some TemporaryData is active (but works correctly if
     attributes are present)
     */
-  static void CompactFaceVector(MeshType& m, PointerUpdater<FacePointer>& pu)
-  {
+  static void CompactFaceVector(MeshType &m, PointerUpdater<FacePointer> &pu) {
     // If already compacted fast return please!
     if (m.fn == (int)m.face.size())
       return;
@@ -1458,8 +1346,7 @@ public:
   }
 
   /*! \brief Wrapper without the PointerUpdater. */
-  static void CompactFaceVector(MeshType& m)
-  {
+  static void CompactFaceVector(MeshType &m) {
     PointerUpdater<FacePointer> pu;
     CompactFaceVector(m, pu);
   }
@@ -1474,8 +1361,8 @@ public:
      not be called when some TemporaryData is active (but works correctly if
      attributes are present)
       */
-  static void CompactTetraVector(MeshType& m, PointerUpdater<TetraPointer>& pu)
-  {
+  static void CompactTetraVector(MeshType &m,
+                                 PointerUpdater<TetraPointer> &pu) {
     // nothing to do
     if (size_t(m.tn) == m.tetra.size())
       return;
@@ -1569,8 +1456,7 @@ public:
   }
 
   /*! \brief Wrapper without the PointerUpdater. */
-  static void CompactTetraVector(MeshType& m)
-  {
+  static void CompactTetraVector(MeshType &m) {
     PointerUpdater<TetraPointer> pu;
     CompactTetraVector(m, pu);
   }
@@ -1578,11 +1464,11 @@ public:
 public:
   /*! \brief Check if an handle to a Per-Vertex Attribute is valid
    */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static bool IsValidHandle(
-    MeshType& m,
-    const typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>& a)
-  {
+      MeshType &m,
+      const typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>
+          &a) {
     if (a._handle == NULL)
       return false;
     for (AttrIterator i = m.vert_attr.begin(); i != m.vert_attr.end(); ++i)
@@ -1596,10 +1482,9 @@ public:
 
       No attribute with that name must exists (even of different type)
     */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>
-  AddPerVertexAttribute(MeshType& m, std::string name)
-  {
+  AddPerVertexAttribute(MeshType &m, std::string name) {
     PAIte i;
     PointerToAttribute h;
     h._name = name;
@@ -1616,13 +1501,12 @@ public:
     h.n_attr = m.attrn;
     std::pair<AttrIterator, bool> res = m.vert_attr.insert(h);
     return typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>(
-      res.first->_handle, res.first->n_attr);
+        res.first->_handle, res.first->n_attr);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>
-  AddPerVertexAttribute(MeshType& m)
-  {
+  AddPerVertexAttribute(MeshType &m) {
     return AddPerVertexAttribute<ATTR_TYPE>(m, std::string(""));
   }
 
@@ -1631,10 +1515,9 @@ public:
      attribute with that name and type exists returns a handle to it. Otherwise
      return a hanlde to a newly created.
       */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>
-  GetPerVertexAttribute(MeshType& m, std::string name = std::string(""))
-  {
+  GetPerVertexAttribute(MeshType &m, std::string name = std::string("")) {
     typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE> h;
     if (!name.empty()) {
       h = FindPerVertexAttribute<ATTR_TYPE>(m, name);
@@ -1648,10 +1531,9 @@ public:
      ATTR_TYPE \returns a invalid handle if no attribute with that name and type
      exists.
       */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>
-  FindPerVertexAttribute(MeshType& m, const std::string& name)
-  {
+  FindPerVertexAttribute(MeshType &m, const std::string &name) {
     assert(!name.empty());
     PointerToAttribute h1;
     h1._name = name;
@@ -1664,49 +1546,46 @@ public:
           PointerToAttribute attr = (*i); // copy the PointerToAttribute
           m.vert_attr.erase(i);           // remove it from the set
           FixPaddedPerVertexAttribute<ATTR_TYPE>(m, attr);
-          std::pair<AttrIterator, bool> new_i =
-            m.vert_attr.insert(attr); // insert the modified PointerToAttribute
+          std::pair<AttrIterator, bool> new_i = m.vert_attr.insert(
+              attr); // insert the modified PointerToAttribute
           assert(new_i.second);
           i = new_i.first;
         }
         return typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>(
-          (*i)._handle, (*i).n_attr);
+            (*i)._handle, (*i).n_attr);
       }
-    return
-      typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>(NULL, 0);
+    return typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>(NULL,
+                                                                           0);
   }
 
   /*! \brief query the mesh for all the attributes per vertex
       \returns the name of all attributes with a non-empy name.
       */
-  template<class ATTR_TYPE>
-  static void GetAllPerVertexAttribute(MeshType& m,
-                                       std::vector<std::string>& all)
-  {
+  template <class ATTR_TYPE>
+  static void GetAllPerVertexAttribute(MeshType &m,
+                                       std::vector<std::string> &all) {
     all.clear();
     typename std::set<PointerToAttribute>::const_iterator i;
     for (i = m.vert_attr.begin(); i != m.vert_attr.end(); ++i)
       if (!(*i)._name.empty()) {
         typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE> hh;
         hh = Allocator<MeshType>::template FindPerVertexAttribute<ATTR_TYPE>(
-          m, (*i)._name);
+            m, (*i)._name);
         if (IsValidHandle<ATTR_TYPE>(m, hh))
           all.push_back((*i)._name);
       }
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static void ClearPerVertexAttribute(
-    MeshType& m,
-    typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>& h,
-    const ATTR_TYPE& initVal = ATTR_TYPE())
-  {
+      MeshType &m,
+      typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE> &h,
+      const ATTR_TYPE &initVal = ATTR_TYPE()) {
     typename std::set<PointerToAttribute>::iterator i;
     for (i = m.vert_attr.begin(); i != m.vert_attr.end(); ++i)
       if ((*i)._handle == h._handle) {
         for (typename MeshType::VertexIterator vi = m.vert.begin();
-             vi != m.vert.end();
-             ++vi)
+             vi != m.vert.end(); ++vi)
           h[vi] = initVal;
         return;
       }
@@ -1715,15 +1594,14 @@ public:
 
   /*! \brief If  the per-vertex attribute exists, delete it.
    */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static void DeletePerVertexAttribute(
-    MeshType& m,
-    typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE>& h)
-  {
+      MeshType &m,
+      typename MeshType::template PerVertexAttributeHandle<ATTR_TYPE> &h) {
     typename std::set<PointerToAttribute>::iterator i;
     for (i = m.vert_attr.begin(); i != m.vert_attr.end(); ++i)
       if ((*i)._handle == h._handle) {
-        delete ((SimpleTempData<VertContainer, ATTR_TYPE>*)(*i)._handle);
+        delete ((SimpleTempData<VertContainer, ATTR_TYPE> *)(*i)._handle);
         m.vert_attr.erase(i);
         return;
       }
@@ -1733,25 +1611,23 @@ public:
   // It must not crash if you try to delete a non existing attribute,
   // because you do not have a way of asking for a handle of an attribute for
   // which you do not know the type.
-  static bool DeletePerVertexAttribute(MeshType& m, std::string name)
-  {
+  static bool DeletePerVertexAttribute(MeshType &m, std::string name) {
     AttrIterator i;
     PointerToAttribute h1;
     h1._name = name;
     i = m.vert_attr.find(h1);
     if (i == m.vert_attr.end())
       return false;
-    delete ((SimpleTempDataBase*)(*i)._handle);
+    delete ((SimpleTempDataBase *)(*i)._handle);
     m.vert_attr.erase(i);
     return true;
   }
 
   /// Per Edge Attributes
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static bool IsValidHandle(
-    MeshType& m,
-    const typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>& a)
-  {
+      MeshType &m,
+      const typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE> &a) {
     if (a._handle == NULL)
       return false;
     for (AttrIterator i = m.edge_attr.begin(); i != m.edge_attr.end(); ++i)
@@ -1760,10 +1636,9 @@ public:
     return false;
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>
-  AddPerEdgeAttribute(MeshType& m, std::string name)
-  {
+  AddPerEdgeAttribute(MeshType &m, std::string name) {
     PAIte i;
     PointerToAttribute h;
     h._name = name;
@@ -1780,13 +1655,12 @@ public:
     h.n_attr = m.attrn;
     std::pair<AttrIterator, bool> res = m.edge_attr.insert(h);
     return typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>(
-      res.first->_handle, res.first->n_attr);
+        res.first->_handle, res.first->n_attr);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>
-  AddPerEdgeAttribute(MeshType& m)
-  {
+  AddPerEdgeAttribute(MeshType &m) {
     return AddPerEdgeAttribute<ATTR_TYPE>(m, std::string(""));
   }
 
@@ -1795,10 +1669,9 @@ public:
      attribute with that name and type exists returns a handle to it. Otherwise
      return a hanlde to a newly created.
       */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>
-  GetPerEdgeAttribute(MeshType& m, std::string name = std::string(""))
-  {
+  GetPerEdgeAttribute(MeshType &m, std::string name = std::string("")) {
     typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE> h;
     if (!name.empty()) {
       h = FindPerEdgeAttribute<ATTR_TYPE>(m, name);
@@ -1808,10 +1681,9 @@ public:
     return AddPerEdgeAttribute<ATTR_TYPE>(m, name);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>
-  FindPerEdgeAttribute(MeshType& m, const std::string& name)
-  {
+  FindPerEdgeAttribute(MeshType &m, const std::string &name) {
     assert(!name.empty());
     PointerToAttribute h1;
     h1._name = name;
@@ -1824,30 +1696,29 @@ public:
           PointerToAttribute attr = (*i); // copy the PointerToAttribute
           m.edge_attr.erase(i);           // remove it from the set
           FixPaddedPerEdgeAttribute<ATTR_TYPE>(m, attr);
-          std::pair<AttrIterator, bool> new_i =
-            m.edge_attr.insert(attr); // insert the modified PointerToAttribute
+          std::pair<AttrIterator, bool> new_i = m.edge_attr.insert(
+              attr); // insert the modified PointerToAttribute
           assert(new_i.second);
           i = new_i.first;
         }
         return typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>(
-          (*i)._handle, (*i).n_attr);
+            (*i)._handle, (*i).n_attr);
       }
 
     return
-      typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>(NULL, 0);
+        typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>(NULL, 0);
   }
 
-  template<class ATTR_TYPE>
-  static void GetAllPerEdgeAttribute(const MeshType& m,
-                                     std::vector<std::string>& all)
-  {
+  template <class ATTR_TYPE>
+  static void GetAllPerEdgeAttribute(const MeshType &m,
+                                     std::vector<std::string> &all) {
     all.clear();
     typename std::set<PointerToAttribute>::const_iterator i;
     for (i = m.edge_attr.begin(); i != m.edge_attr.end(); ++i)
       if (!(*i)._name.empty()) {
         typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE> hh;
         hh = Allocator<MeshType>::template FindPerEdgeAttribute<ATTR_TYPE>(
-          m, (*i)._name);
+            m, (*i)._name);
         if (IsValidHandle<ATTR_TYPE>(m, hh))
           all.push_back((*i)._name);
       }
@@ -1855,15 +1726,14 @@ public:
 
   /*! \brief If  the per-edge attribute exists, delete it.
    */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static void DeletePerEdgeAttribute(
-    MeshType& m,
-    typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE>& h)
-  {
+      MeshType &m,
+      typename MeshType::template PerEdgeAttributeHandle<ATTR_TYPE> &h) {
     typename std::set<PointerToAttribute>::iterator i;
     for (i = m.edge_attr.begin(); i != m.edge_attr.end(); ++i)
       if ((*i)._handle == h._handle) {
-        delete ((SimpleTempData<FaceContainer, ATTR_TYPE>*)(*i)._handle);
+        delete ((SimpleTempData<FaceContainer, ATTR_TYPE> *)(*i)._handle);
         m.edge_attr.erase(i);
         return;
       }
@@ -1873,25 +1743,23 @@ public:
   // It must not crash if you try to delete a non existing attribute,
   // because you do not have a way of asking for a handle of an attribute for
   // which you do not know the type.
-  static bool DeletePerEdgeAttribute(MeshType& m, std::string name)
-  {
+  static bool DeletePerEdgeAttribute(MeshType &m, std::string name) {
     AttrIterator i;
     PointerToAttribute h1;
     h1._name = name;
     i = m.edge_attr.find(h1);
     if (i == m.edge_attr.end())
       return false;
-    delete ((SimpleTempDataBase*)(*i)._handle);
+    delete ((SimpleTempDataBase *)(*i)._handle);
     m.edge_attr.erase(i);
     return true;
   }
 
   /// Per Face Attributes
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static bool IsValidHandle(
-    MeshType& m,
-    const typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>& a)
-  {
+      MeshType &m,
+      const typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE> &a) {
     if (a._handle == NULL)
       return false;
     for (AttrIterator i = m.face_attr.begin(); i != m.face_attr.end(); ++i)
@@ -1900,10 +1768,9 @@ public:
     return false;
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>
-  AddPerFaceAttribute(MeshType& m, std::string name)
-  {
+  AddPerFaceAttribute(MeshType &m, std::string name) {
     PAIte i;
     PointerToAttribute h;
     h._name = name;
@@ -1920,13 +1787,12 @@ public:
     h.n_attr = m.attrn;
     std::pair<AttrIterator, bool> res = m.face_attr.insert(h);
     return typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>(
-      res.first->_handle, res.first->n_attr);
+        res.first->_handle, res.first->n_attr);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>
-  AddPerFaceAttribute(MeshType& m)
-  {
+  AddPerFaceAttribute(MeshType &m) {
     return AddPerFaceAttribute<ATTR_TYPE>(m, std::string(""));
   }
 
@@ -1935,10 +1801,9 @@ public:
      attribute with that name and type exists returns a handle to it. Otherwise
      return a hanlde to a newly created.
       */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>
-  GetPerFaceAttribute(MeshType& m, std::string name = std::string(""))
-  {
+  GetPerFaceAttribute(MeshType &m, std::string name = std::string("")) {
     typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE> h;
     if (!name.empty()) {
       h = FindPerFaceAttribute<ATTR_TYPE>(m, name);
@@ -1948,10 +1813,9 @@ public:
     return AddPerFaceAttribute<ATTR_TYPE>(m, name);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>
-  FindPerFaceAttribute(MeshType& m, const std::string& name)
-  {
+  FindPerFaceAttribute(MeshType &m, const std::string &name) {
     assert(!name.empty());
     PointerToAttribute h1;
     h1._name = name;
@@ -1964,28 +1828,28 @@ public:
           PointerToAttribute attr = (*i); // copy the PointerToAttribute
           m.face_attr.erase(i);           // remove it from the set
           FixPaddedPerFaceAttribute<ATTR_TYPE>(m, attr);
-          std::pair<AttrIterator, bool> new_i =
-            m.face_attr.insert(attr); // insert the modified PointerToAttribute
+          std::pair<AttrIterator, bool> new_i = m.face_attr.insert(
+              attr); // insert the modified PointerToAttribute
           assert(new_i.second);
           i = new_i.first;
         }
         return typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>(
-          (*i)._handle, (*i).n_attr);
+            (*i)._handle, (*i).n_attr);
       }
     return
-      typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>(NULL, 0);
+        typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>(NULL, 0);
   }
 
-  template<class ATTR_TYPE>
-  static void GetAllPerFaceAttribute(MeshType& m, std::vector<std::string>& all)
-  {
+  template <class ATTR_TYPE>
+  static void GetAllPerFaceAttribute(MeshType &m,
+                                     std::vector<std::string> &all) {
     all.clear();
     typename std::set<PointerToAttribute>::const_iterator i;
     for (i = m.face_attr.begin(); i != m.face_attr.end(); ++i)
       if (!(*i)._name.empty()) {
         typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE> hh;
         hh = Allocator<MeshType>::template FindPerFaceAttribute<ATTR_TYPE>(
-          m, (*i)._name);
+            m, (*i)._name);
         if (IsValidHandle<ATTR_TYPE>(m, hh))
           all.push_back((*i)._name);
       }
@@ -1993,15 +1857,14 @@ public:
 
   /*! \brief If  the per-face attribute exists, delete it.
    */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static void DeletePerFaceAttribute(
-    MeshType& m,
-    typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE>& h)
-  {
+      MeshType &m,
+      typename MeshType::template PerFaceAttributeHandle<ATTR_TYPE> &h) {
     typename std::set<PointerToAttribute>::iterator i;
     for (i = m.face_attr.begin(); i != m.face_attr.end(); ++i)
       if ((*i)._handle == h._handle) {
-        delete ((SimpleTempData<FaceContainer, ATTR_TYPE>*)(*i)._handle);
+        delete ((SimpleTempData<FaceContainer, ATTR_TYPE> *)(*i)._handle);
         m.face_attr.erase(i);
         return;
       }
@@ -2011,25 +1874,23 @@ public:
   // It must not crash if you try to delete a non existing attribute,
   // because you do not have a way of asking for a handle of an attribute for
   // which you do not know the type.
-  static bool DeletePerFaceAttribute(MeshType& m, std::string name)
-  {
+  static bool DeletePerFaceAttribute(MeshType &m, std::string name) {
     AttrIterator i;
     PointerToAttribute h1;
     h1._name = name;
     i = m.face_attr.find(h1);
     if (i == m.face_attr.end())
       return false;
-    delete ((SimpleTempDataBase*)(*i)._handle);
+    delete ((SimpleTempDataBase *)(*i)._handle);
     m.face_attr.erase(i);
     return true;
   }
 
   /// Per Tetra Attributes
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static bool IsValidHandle(
-    MeshType& m,
-    const typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>& a)
-  {
+      MeshType &m,
+      const typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE> &a) {
     if (a._handle == NULL)
       return false;
     for (AttrIterator i = m.tetra_attr.begin(); i != m.tetra_attr.end(); ++i)
@@ -2038,10 +1899,9 @@ public:
     return false;
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>
-  AddPerTetraAttribute(MeshType& m, std::string name)
-  {
+  AddPerTetraAttribute(MeshType &m, std::string name) {
     PAIte i;
     PointerToAttribute h;
     h._name = name;
@@ -2058,13 +1918,12 @@ public:
     h.n_attr = m.attrn;
     std::pair<AttrIterator, bool> res = m.tetra_attr.insert(h);
     return typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>(
-      res.first->_handle, res.first->n_attr);
+        res.first->_handle, res.first->n_attr);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>
-  AddPerTetraAttribute(MeshType& m)
-  {
+  AddPerTetraAttribute(MeshType &m) {
     return AddPerTetraAttribute<ATTR_TYPE>(m, std::string(""));
   }
 
@@ -2073,10 +1932,9 @@ public:
      attribute with that name and type exists returns a handle to it. Otherwise
      return a hanlde to a newly created.
       */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>
-  GetPerTetraAttribute(MeshType& m, std::string name = std::string(""))
-  {
+  GetPerTetraAttribute(MeshType &m, std::string name = std::string("")) {
     typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE> h;
     if (!name.empty()) {
       h = FindPerTetraAttribute<ATTR_TYPE>(m, name);
@@ -2086,10 +1944,9 @@ public:
     return AddPerTetraAttribute<ATTR_TYPE>(m, name);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>
-  FindPerTetraAttribute(MeshType& m, const std::string& name)
-  {
+  FindPerTetraAttribute(MeshType &m, const std::string &name) {
     assert(!name.empty());
     PointerToAttribute h1;
     h1._name = name;
@@ -2102,29 +1959,28 @@ public:
           PointerToAttribute attr = (*i); // copy the PointerToAttribute
           m.tetra_attr.erase(i);          // remove it from the set
           FixPaddedPerTetraAttribute<ATTR_TYPE>(m, attr);
-          std::pair<AttrIterator, bool> new_i =
-            m.tetra_attr.insert(attr); // insert the modified PointerToAttribute
+          std::pair<AttrIterator, bool> new_i = m.tetra_attr.insert(
+              attr); // insert the modified PointerToAttribute
           assert(new_i.second);
           i = new_i.first;
         }
         return typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>(
-          (*i)._handle, (*i).n_attr);
+            (*i)._handle, (*i).n_attr);
       }
     return
-      typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>(NULL, 0);
+        typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>(NULL, 0);
   }
 
-  template<class ATTR_TYPE>
-  static void GetAllPerTetraAttribute(MeshType& m,
-                                      std::vector<std::string>& all)
-  {
+  template <class ATTR_TYPE>
+  static void GetAllPerTetraAttribute(MeshType &m,
+                                      std::vector<std::string> &all) {
     all.clear();
     typename std::set<PointerToAttribute>::const_iterator i;
     for (i = m.tetra_attr.begin(); i != m.tetra_attr.end(); ++i)
       if (!(*i)._name.empty()) {
         typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE> hh;
         hh = Allocator<MeshType>::template FindPerTetraAttribute<ATTR_TYPE>(
-          m, (*i)._name);
+            m, (*i)._name);
         if (IsValidHandle<ATTR_TYPE>(m, hh))
           all.push_back((*i)._name);
       }
@@ -2132,15 +1988,14 @@ public:
 
   /*! \brief If  the per-face attribute exists, delete it.
    */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static void DeletePerTetraAttribute(
-    MeshType& m,
-    typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE>& h)
-  {
+      MeshType &m,
+      typename MeshType::template PerTetraAttributeHandle<ATTR_TYPE> &h) {
     typename std::set<PointerToAttribute>::iterator i;
     for (i = m.tetra_attr.begin(); i != m.tetra_attr.end(); ++i)
       if ((*i)._handle == h._handle) {
-        delete ((SimpleTempData<TetraContainer, ATTR_TYPE>*)(*i)._handle);
+        delete ((SimpleTempData<TetraContainer, ATTR_TYPE> *)(*i)._handle);
         m.tetra_attr.erase(i);
         return;
       }
@@ -2150,25 +2005,23 @@ public:
   // It must not crash if you try to delete a non existing attribute,
   // because you do not have a way of asking for a handle of an attribute for
   // which you do not know the type.
-  static bool DeletePerTetraAttribute(MeshType& m, std::string name)
-  {
+  static bool DeletePerTetraAttribute(MeshType &m, std::string name) {
     AttrIterator i;
     PointerToAttribute h1;
     h1._name = name;
     i = m.tetra_attr.find(h1);
     if (i == m.tetra_attr.end())
       return false;
-    delete ((SimpleTempDataBase*)(*i)._handle);
+    delete ((SimpleTempDataBase *)(*i)._handle);
     m.tetra_attr.erase(i);
     return true;
   }
 
   /// Per Mesh Attributes
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static bool IsValidHandle(
-    MeshType& m,
-    const typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>& a)
-  {
+      MeshType &m,
+      const typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE> &a) {
     if (a._handle == NULL)
       return false;
     for (AttrIterator i = m.mesh_attr.begin(); i != m.mesh_attr.end(); ++i)
@@ -2177,10 +2030,9 @@ public:
     return false;
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>
-  AddPerMeshAttribute(MeshType& m, std::string name)
-  {
+  AddPerMeshAttribute(MeshType &m, std::string name) {
     PAIte i;
     PointerToAttribute h;
     h._name = name;
@@ -2196,7 +2048,7 @@ public:
     h.n_attr = m.attrn;
     std::pair<AttrIterator, bool> res = m.mesh_attr.insert(h);
     return typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>(
-      res.first->_handle, res.first->n_attr);
+        res.first->_handle, res.first->n_attr);
   }
 
   /*! \brief gives a handle to a per-edge attribute with a given name and
@@ -2204,10 +2056,9 @@ public:
      attribute with that name and type exists returns a handle to it. Otherwise
      return a hanlde to a newly created.
       */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>
-  GetPerMeshAttribute(MeshType& m, std::string name = std::string(""))
-  {
+  GetPerMeshAttribute(MeshType &m, std::string name = std::string("")) {
     typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE> h;
     if (!name.empty()) {
       h = FindPerMeshAttribute<ATTR_TYPE>(m, name);
@@ -2217,10 +2068,9 @@ public:
     return AddPerMeshAttribute<ATTR_TYPE>(m, name);
   }
 
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>
-  FindPerMeshAttribute(MeshType& m, const std::string& name)
-  {
+  FindPerMeshAttribute(MeshType &m, const std::string &name) {
     assert(!name.empty());
     PointerToAttribute h1;
     h1._name = name;
@@ -2233,24 +2083,23 @@ public:
           PointerToAttribute attr = (*i); // copy the PointerToAttribute
           m.mesh_attr.erase(i);           // remove it from the set
           FixPaddedPerMeshAttribute<ATTR_TYPE>(m, attr);
-          std::pair<AttrIterator, bool> new_i =
-            m.mesh_attr.insert(attr); // insert the modified PointerToAttribute
+          std::pair<AttrIterator, bool> new_i = m.mesh_attr.insert(
+              attr); // insert the modified PointerToAttribute
           assert(new_i.second);
           i = new_i.first;
         }
 
         return typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>(
-          (*i)._handle, (*i).n_attr);
+            (*i)._handle, (*i).n_attr);
       }
 
     return
-      typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>(NULL, 0);
+        typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>(NULL, 0);
   }
 
-  template<class ATTR_TYPE>
-  static void GetAllPerMeshAttribute(const MeshType& m,
-                                     std::vector<std::string>& all)
-  {
+  template <class ATTR_TYPE>
+  static void GetAllPerMeshAttribute(const MeshType &m,
+                                     std::vector<std::string> &all) {
     typename std::set<PointerToAttribute>::iterator i;
     for (i = m.mesh_attr.begin(); i != m.mesh_attr.end(); ++i)
       if ((*i)._sizeof == sizeof(ATTR_TYPE))
@@ -2259,15 +2108,14 @@ public:
 
   /*! \brief If  the per-mesh attribute exists, delete it.
    */
-  template<class ATTR_TYPE>
+  template <class ATTR_TYPE>
   static void DeletePerMeshAttribute(
-    MeshType& m,
-    typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE>& h)
-  {
+      MeshType &m,
+      typename MeshType::template PerMeshAttributeHandle<ATTR_TYPE> &h) {
     typename std::set<PointerToAttribute>::iterator i;
     for (i = m.mesh_attr.begin(); i != m.mesh_attr.end(); ++i)
       if ((*i)._handle == h._handle) {
-        delete ((Attribute<ATTR_TYPE>*)(*i)._handle);
+        delete ((Attribute<ATTR_TYPE> *)(*i)._handle);
         m.mesh_attr.erase(i);
         return;
       }
@@ -2277,37 +2125,35 @@ public:
   // It must not crash if you try to delete a non existing attribute,
   // because you do not have a way of asking for a handle of an attribute for
   // which you do not know the type.
-  static bool DeletePerMeshAttribute(MeshType& m, std::string name)
-  {
+  static bool DeletePerMeshAttribute(MeshType &m, std::string name) {
     AttrIterator i;
     PointerToAttribute h1;
     h1._name = name;
     i = m.mesh_attr.find(h1);
     if (i == m.mesh_attr.end())
       return false;
-    delete ((SimpleTempDataBase*)(*i)._handle);
+    delete ((SimpleTempDataBase *)(*i)._handle);
     m.mesh_attr.erase(i);
     return true;
   }
 
-  template<class ATTR_TYPE>
-  static void FixPaddedPerVertexAttribute(MeshType& m, PointerToAttribute& pa)
-  {
+  template <class ATTR_TYPE>
+  static void FixPaddedPerVertexAttribute(MeshType &m, PointerToAttribute &pa) {
 
     // create the container of the right type
-    SimpleTempData<VertContainer, ATTR_TYPE>* _handle =
-      new SimpleTempData<VertContainer, ATTR_TYPE>(m.vert);
+    SimpleTempData<VertContainer, ATTR_TYPE> *_handle =
+        new SimpleTempData<VertContainer, ATTR_TYPE>(m.vert);
 
     // copy the padded container in the new one
     _handle->Resize(m.vert.size());
     for (size_t i = 0; i < m.vert.size(); ++i) {
-      ATTR_TYPE* dest = &(*_handle)[i];
-      char* ptr = (char*)(((SimpleTempDataBase*)pa._handle)->DataBegin());
-      memcpy((void*)dest, (void*)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
+      ATTR_TYPE *dest = &(*_handle)[i];
+      char *ptr = (char *)(((SimpleTempDataBase *)pa._handle)->DataBegin());
+      memcpy((void *)dest, (void *)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
     }
 
     // remove the padded container
-    delete ((SimpleTempDataBase*)pa._handle);
+    delete ((SimpleTempDataBase *)pa._handle);
 
     // update the pointer to data
     pa._sizeof = sizeof(ATTR_TYPE);
@@ -2318,24 +2164,23 @@ public:
     // zero the padding
     pa._padding = 0;
   }
-  template<class ATTR_TYPE>
-  static void FixPaddedPerEdgeAttribute(MeshType& m, PointerToAttribute& pa)
-  {
+  template <class ATTR_TYPE>
+  static void FixPaddedPerEdgeAttribute(MeshType &m, PointerToAttribute &pa) {
 
     // create the container of the right type
-    SimpleTempData<EdgeContainer, ATTR_TYPE>* _handle =
-      new SimpleTempData<EdgeContainer, ATTR_TYPE>(m.edge);
+    SimpleTempData<EdgeContainer, ATTR_TYPE> *_handle =
+        new SimpleTempData<EdgeContainer, ATTR_TYPE>(m.edge);
 
     // copy the padded container in the new one
     _handle->Resize(m.edge.size());
     for (size_t i = 0; i < m.edge.size(); ++i) {
-      ATTR_TYPE* dest = &(*_handle)[i];
-      char* ptr = (char*)(((SimpleTempDataBase*)pa._handle)->DataBegin());
-      memcpy((void*)dest, (void*)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
+      ATTR_TYPE *dest = &(*_handle)[i];
+      char *ptr = (char *)(((SimpleTempDataBase *)pa._handle)->DataBegin());
+      memcpy((void *)dest, (void *)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
     }
 
     // remove the padded container
-    delete ((SimpleTempDataBase*)pa._handle);
+    delete ((SimpleTempDataBase *)pa._handle);
 
     // update the pointer to data
     pa._sizeof = sizeof(ATTR_TYPE);
@@ -2347,24 +2192,23 @@ public:
     pa._padding = 0;
   }
 
-  template<class ATTR_TYPE>
-  static void FixPaddedPerFaceAttribute(MeshType& m, PointerToAttribute& pa)
-  {
+  template <class ATTR_TYPE>
+  static void FixPaddedPerFaceAttribute(MeshType &m, PointerToAttribute &pa) {
 
     // create the container of the right type
-    SimpleTempData<FaceContainer, ATTR_TYPE>* _handle =
-      new SimpleTempData<FaceContainer, ATTR_TYPE>(m.face);
+    SimpleTempData<FaceContainer, ATTR_TYPE> *_handle =
+        new SimpleTempData<FaceContainer, ATTR_TYPE>(m.face);
 
     // copy the padded container in the new one
     _handle->Resize(m.face.size());
     for (size_t i = 0; i < m.face.size(); ++i) {
-      ATTR_TYPE* dest = &(*_handle)[i];
-      char* ptr = (char*)(((SimpleTempDataBase*)pa._handle)->DataBegin());
-      memcpy((void*)dest, (void*)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
+      ATTR_TYPE *dest = &(*_handle)[i];
+      char *ptr = (char *)(((SimpleTempDataBase *)pa._handle)->DataBegin());
+      memcpy((void *)dest, (void *)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
     }
 
     // remove the padded container
-    delete ((SimpleTempDataBase*)pa._handle);
+    delete ((SimpleTempDataBase *)pa._handle);
 
     // update the pointer to data
     pa._sizeof = sizeof(ATTR_TYPE);
@@ -2376,24 +2220,23 @@ public:
     pa._padding = 0;
   }
 
-  template<class ATTR_TYPE>
-  static void FixPaddedPerTetraAttribute(MeshType& m, PointerToAttribute& pa)
-  {
+  template <class ATTR_TYPE>
+  static void FixPaddedPerTetraAttribute(MeshType &m, PointerToAttribute &pa) {
 
     // create the container of the right type
-    SimpleTempData<TetraContainer, ATTR_TYPE>* _handle =
-      new SimpleTempData<TetraContainer, ATTR_TYPE>(m.tetra);
+    SimpleTempData<TetraContainer, ATTR_TYPE> *_handle =
+        new SimpleTempData<TetraContainer, ATTR_TYPE>(m.tetra);
 
     // copy the padded container in the new one
     _handle->Resize(m.tetra.size());
     for (size_t i = 0; i < m.tetra.size(); ++i) {
-      ATTR_TYPE* dest = &(*_handle)[i];
-      char* ptr = (char*)(((SimpleTempDataBase*)pa._handle)->DataBegin());
-      memcpy((void*)dest, (void*)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
+      ATTR_TYPE *dest = &(*_handle)[i];
+      char *ptr = (char *)(((SimpleTempDataBase *)pa._handle)->DataBegin());
+      memcpy((void *)dest, (void *)&(ptr[i * pa._sizeof]), sizeof(ATTR_TYPE));
     }
 
     // remove the padded container
-    delete ((SimpleTempDataBase*)pa._handle);
+    delete ((SimpleTempDataBase *)pa._handle);
 
     // update the pointer to data
     pa._sizeof = sizeof(ATTR_TYPE);
@@ -2405,20 +2248,19 @@ public:
     pa._padding = 0;
   }
 
-  template<class ATTR_TYPE>
-  static void FixPaddedPerMeshAttribute(MeshType& /* m */,
-                                        PointerToAttribute& pa)
-  {
+  template <class ATTR_TYPE>
+  static void FixPaddedPerMeshAttribute(MeshType & /* m */,
+                                        PointerToAttribute &pa) {
 
     // create the container of the right type
-    Attribute<ATTR_TYPE>* _handle = new Attribute<ATTR_TYPE>();
+    Attribute<ATTR_TYPE> *_handle = new Attribute<ATTR_TYPE>();
 
     // copy the padded container in the new one
-    char* ptr = (char*)(((Attribute<ATTR_TYPE>*)pa._handle)->DataBegin());
-    memcpy((void*)_handle->attribute, (void*)&(ptr[0]), sizeof(ATTR_TYPE));
+    char *ptr = (char *)(((Attribute<ATTR_TYPE> *)pa._handle)->DataBegin());
+    memcpy((void *)_handle->attribute, (void *)&(ptr[0]), sizeof(ATTR_TYPE));
 
     // remove the padded container
-    delete ((Attribute<ATTR_TYPE>*)pa._handle);
+    delete ((Attribute<ATTR_TYPE> *)pa._handle);
 
     // update the pointer to data
     pa._sizeof = sizeof(ATTR_TYPE);
