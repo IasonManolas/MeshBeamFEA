@@ -85,8 +85,6 @@ class GUI {
       } force;
       std::vector<int> fixedVertices;
       std::vector<NodalForce> nodalForces;
-      float b{0.01};
-      float h{0.1};
     } simulation;
     struct ViewingOptions {
       igl::ColorMapType chosenColormapType{igl::COLOR_MAP_TYPE_INFERNO};

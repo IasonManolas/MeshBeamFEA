@@ -128,8 +128,7 @@ void GUI::createMenu() {
                    "N\0Ty\0Tx\0Mx\0My\0Mz\0");
       if (force != entries.viewingOptions.chosenForceComponent) {
         entries.viewingOptions.chosenForceComponent = force;
-        drawer.setEdgeColors(drawingDataIDs.displacedEdgeMeshID,
-                             entries.simulation.b * entries.simulation.h,
+        drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
                              entries.viewingOptions.chosenForceComponent,
                              viewer);
       }
@@ -473,18 +472,16 @@ void GUI::drawEdgeForces(const std::vector<std::vector<double>> &edgeForces) {
   }
   std::vector<Eigen::MatrixXd> edgeColors;
   convertToColors(eigenEdgeForces, edgeColors);
-  if (entries.simulation.b * entries.simulation.h > 0) {
-    Eigen::MatrixXd &beamMeshVertices =
-        viewer.getDrawingData(drawingDataIDs.displacedEdgeMeshID).V;
-    //    assert(beamMeshVertices.rows() == numberOfVerticesPerBeam *
-    //    edgeMesh.EN());
-    drawer.computeBeamColors(edgeMesh.getEigenVertices(),
-                             edgeMesh.getEigenEdges(), edgeColors,
-                             beamMeshVertices);
-    drawer.setEdgeColors(drawingDataIDs.displacedEdgeMeshID,
-                         entries.simulation.b * entries.simulation.h,
-                         entries.viewingOptions.chosenForceComponent, viewer);
-  }
+  Eigen::MatrixXd &beamMeshVertices =
+      viewer.getDrawingData(drawingDataIDs.displacedEdgeMeshID).V;
+  //    assert(beamMeshVertices.rows() == numberOfVerticesPerBeam *
+  //    edgeMesh.EN());
+  drawer.computeBeamColors(edgeMesh.getEigenVertices(),
+                           edgeMesh.getEigenEdges(), edgeColors,
+                           beamMeshVertices);
+  drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
+
+                       entries.viewingOptions.chosenForceComponent, viewer);
   colorbar.init_colormaps(eigenEdgeForces,
                           entries.viewingOptions.chosenColormapType);
 }
@@ -605,16 +602,13 @@ void GUI::drawColorTypeCombo() {
     colorbar.init_colormaps(eigenEdgeForces,
                             entries.viewingOptions.chosenColormapType);
 
-    if (entries.simulation.b * entries.simulation.h > 0) {
-      Eigen::MatrixXd &beamMeshVertices =
-          viewer.getDrawingData(drawingDataIDs.displacedEdgeMeshID).V;
-      drawer.computeBeamColors(edgeMesh.getEigenVertices(),
-                               edgeMesh.getEigenEdges(), edgeColors,
-                               beamMeshVertices);
-      drawer.setEdgeColors(drawingDataIDs.displacedEdgeMeshID,
-                           entries.simulation.b * entries.simulation.h,
-                           entries.viewingOptions.chosenForceComponent, viewer);
-    }
+    Eigen::MatrixXd &beamMeshVertices =
+        viewer.getDrawingData(drawingDataIDs.displacedEdgeMeshID).V;
+    drawer.computeBeamColors(edgeMesh.getEigenVertices(),
+                             edgeMesh.getEigenEdges(), edgeColors,
+                             beamMeshVertices);
+    drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
+                         entries.viewingOptions.chosenForceComponent, viewer);
   }
 }
 

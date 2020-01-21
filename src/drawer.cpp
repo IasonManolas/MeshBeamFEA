@@ -123,11 +123,11 @@ void Drawer::drawWorldAxis(const std::string &drawingDataID, Viewer &viewer,
   viewer.addDrawingData(drawingDataID, axisDrawingData);
 }
 
-void Drawer::setBeamColors(const string drawingDataID,
-                           const Eigen::MatrixX3d colors,
+void Drawer::setBeamColors(const string &drawingDataID, const int &colorIndex,
                            Viewer &viewer) const {
   assert(!beamVerticesColors.empty());
-  viewer.setColors(drawingDataID, colors);
+  viewer.setColors(drawingDataID,
+                   beamVerticesColors[static_cast<size_t>(colorIndex)]);
 }
 
 void Drawer::computeBeamColors(const Eigen::Vector3d &edgeVertex1,
@@ -206,19 +206,6 @@ void Drawer::computeBeamColors(const Eigen::MatrixX3d &edgeVertices,
         }
       }
     }
-  }
-}
-
-void Drawer::setEdgeColors(const string &drawingDataID,
-                           const float &edgeThickness, int colorIndex,
-                           Viewer &viewer) const {
-  assert(viewer.hasDrawingData(drawingDataID));
-  if (edgeThickness > edgeThicknessEpsilon) {
-    setBeamColors(drawingDataID,
-                  beamVerticesColors[static_cast<size_t>(colorIndex)], viewer);
-  } else {
-    std::cout << "Edges are not considered beams. Not setting colors."
-              << std::endl;
   }
 }
 

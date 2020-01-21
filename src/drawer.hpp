@@ -20,8 +20,6 @@ class Drawer {
   std::vector<Eigen::MatrixX3d> beamVerticesColors;
 
 private:
-  void setBeamColors(const std::string drawingDataID,
-                     const Eigen::MatrixX3d colors, Viewer &viewer) const;
   void computeBeamColors(
       const std::vector<Eigen::MatrixXd> &edgeColors,
       const std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>
@@ -90,8 +88,10 @@ public:
                         const Eigen::MatrixX3d &newPositions,
                         Viewer &viewer) const;
   void drawEdges(const std::string drawingDataID,
-                 const Eigen::MatrixX3d &vertices, const Eigen::MatrixX2i edges, const Eigen::MatrixX3d &edgeNormals,
-                 const std::vector<BeamDimensions> &beamDimensions, Viewer &viewer) const;
+                 const Eigen::MatrixX3d &vertices, const Eigen::MatrixX2i edges,
+                 const Eigen::MatrixX3d &edgeNormals,
+                 const std::vector<BeamDimensions> &beamDimensions,
+                 Viewer &viewer) const;
   void markPositions(const std::string drawingDataID,
                      const Eigen::MatrixX3d &spherePositions,
                      Viewer &viewer) const;
@@ -99,13 +99,12 @@ public:
                  const Eigen::MatrixX3d &edgeStartPoints,
                  const Eigen::MatrixX3d &edgeEndPoints,
                  const Eigen::MatrixX3d &colors, Viewer &viewer) const;
-  void setEdgeColors(const std::string &drawingDataID,
-                     const float &edgeThickness, int colorIndex,
-                     Viewer &viewer) const;
   void computeBeamColors(const Eigen::MatrixX3d &edgeVertices,
                          const Eigen::MatrixX2i &edges,
                          const std::vector<Eigen::MatrixXd> &edgeColors,
                          const Eigen::MatrixX3d &beamMeshVertices);
+  void setBeamColors(const std::string &drawingDataID, const int &colorIndex,
+                     Viewer &viewer) const;
 };
 
 #endif // DRAWER_HPP
