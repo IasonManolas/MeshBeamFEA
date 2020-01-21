@@ -23,6 +23,7 @@
 //
 // Author: ryan.latture@gmail.com (Ryan Latture)
 
+#include <Eigen/LU>
 #include <boost/format.hpp>
 #include <chrono>
 #include <cmath>
@@ -37,31 +38,25 @@
 namespace fea {
 
 namespace {
-void
-writeStringToTxt(std::string filename, std::string data)
-{
+void writeStringToTxt(std::string filename, std::string data) {
   std::ofstream output_file;
   output_file.open(filename);
 
   if (!output_file.is_open()) {
     throw std::runtime_error(
-      (boost::format("Error opening file %s.") % filename).str());
+        (boost::format("Error opening file %s.") % filename).str());
   }
   output_file << data;
   output_file.close();
 }
-}
+} // namespace
 
-inline double
-norm(const Node& n1, const Node& n2)
-{
+inline double norm(const Node &n1, const Node &n2) {
   const Node dn = n2 - n1;
   return dn.norm();
 }
 
-void
-GlobalStiffAssembler::calcKelem(unsigned int i, const Job& job)
-{
+void GlobalStiffAssembler::calcKelem(unsigned int i, const Job &job) {
   // extract element properties
   const double EA = job.props[i].EA;   // Young's modulus * cross area
   const double EIz = job.props[i].EIz; // Young's modulus* I3
@@ -139,20 +134,36 @@ GlobalStiffAssembler::calcKelem(unsigned int i, const Job& job)
 
   // update rotation matrices
   calcAelem(nx, ny);
+  AelemT = Aelem.transpose();
 
+  std::ofstream KlocalFile("Klocal.csv");
+  if (KlocalFile.is_open()) {
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+                                           Eigen::DontAlignCols, ", ", "\n");
+    KlocalFile << Klocal.format(CSVFormat) << '\n';
+    KlocalFile.close();
+  }
   // update Kelem
   Kelem = AelemT * Klocal * Aelem;
+  //  std::ofstream KelemFile("Kelem.csv");
+  //  if (KelemFile.is_open()) {
+  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+  //                                           Eigen::DontAlignCols, ", ",
+  //                                           "\n");
+  //    KelemFile << Kelem.format(CSVFormat) << '\n';
+  //    KelemFile.close();
+  //  }
+
+  LocalMatrix KlocalAelem;
+  KlocalAelem = Klocal * Aelem;
+  perElemKlocalAelem[i] = KlocalAelem;
 };
 
-void
-GlobalStiffAssembler::calcAelem(const Eigen::Vector3d& nx,
-                                const Eigen::Vector3d& ny)
-{
+void GlobalStiffAssembler::calcAelem(const Eigen::Vector3d &nx,
+                                     const Eigen::Vector3d &ny) {
   // calculate the unit normal vector in local z direction
   Eigen::Vector3d nz;
-  nz = nx.cross(ny).normalized(); // I: Whats the correct?
-  // const double dlz = nz.squaredNorm(); // I: if nz has one element
-  // squaredNorm does not return this element but another one.. nz /= dlz;
+  nz = nx.cross(ny).normalized();
 
   // update rotation matrix
   Aelem(0, 0) = nx(0);
@@ -195,13 +206,14 @@ GlobalStiffAssembler::calcAelem(const Eigen::Vector3d& nx,
   Aelem(11, 10) = nz(1);
   Aelem(11, 11) = nz(2);
 
-  std::ofstream AelemFile("Aelem.csv");
-  if (AelemFile.is_open()) {
-    const static Eigen::IOFormat CSVFormat(
-      Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    AelemFile << Aelem.format(CSVFormat) << '\n';
-    AelemFile.close();
-  }
+  //  std::ofstream AelemFile("Aelem.csv");
+  //  if (AelemFile.is_open()) {
+  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+  //                                           Eigen::DontAlignCols, ", ",
+  //                                           "\n");
+  //    AelemFile << Aelem.format(CSVFormat) << '\n';
+  //    AelemFile.close();
+  //  }
 
   // update transposed rotation matrix
   AelemT(0, 0) = nx(0);
@@ -243,13 +255,14 @@ GlobalStiffAssembler::calcAelem(const Eigen::Vector3d& nx,
   AelemT(11, 9) = nx(2);
   AelemT(11, 10) = ny(2);
   AelemT(11, 11) = nz(2);
+}
+
+std::vector<LocalMatrix> GlobalStiffAssembler::getPerElemKlocalAelem() const {
+  return perElemKlocalAelem;
 };
 
-void
-GlobalStiffAssembler::operator()(SparseMat& Kg,
-                                 const Job& job,
-                                 const std::vector<Tie>& ties)
-{
+void GlobalStiffAssembler::operator()(SparseMat &Kg, const Job &job,
+                                      const std::vector<Tie> &ties) {
   int nn1, nn2;
   unsigned int row, col;
   const unsigned int dofs_per_elem = DOF::NUM_DOFS;
@@ -259,6 +272,7 @@ GlobalStiffAssembler::operator()(SparseMat& Kg,
   std::vector<Eigen::Triplet<double>> triplets;
   triplets.reserve(40 * job.elems.size() + 4 * dofs_per_elem * ties.size());
 
+  perElemKlocalAelem.resize(job.elems.size());
   for (unsigned int i = 0; i < job.elems.size(); ++i) {
     // update Kelem with current elemental stiffness matrix
     calcKelem(i, job); // 12x12 matrix
@@ -287,25 +301,22 @@ GlobalStiffAssembler::operator()(SparseMat& Kg,
           // top right
           else {
             triplets.push_back(Eigen::Triplet<double>(
-              dofs_per_elem * nn1 + row,
-              dofs_per_elem * (nn2 - 1) + col,
-              it.value())); // I: Giati nn2-1 kai oxi nn2?
+                dofs_per_elem * nn1 + row, dofs_per_elem * (nn2 - 1) + col,
+                it.value())); // I: Giati nn2-1 kai oxi nn2?
           }
         } else {
           // bottom left
           if (col < 6) {
             triplets.push_back(Eigen::Triplet<double>(
-              dofs_per_elem * (nn2 - 1) + row,
-              dofs_per_elem * nn1 + col,
-              it.value())); // I: Giati nn2-1 kai oxi nn2? Epeidi ta nn2 ston
-                            // Kelem exoun idi offset 6
+                dofs_per_elem * (nn2 - 1) + row, dofs_per_elem * nn1 + col,
+                it.value())); // I: Giati nn2-1 kai oxi nn2? Epeidi ta nn2 ston
+                              // Kelem exoun idi offset 6
           }
           // bottom right
           else {
-            triplets.push_back(
-              Eigen::Triplet<double>(dofs_per_elem * (nn2 - 1) + row,
-                                     dofs_per_elem * (nn2 - 1) + col,
-                                     it.value()));
+            triplets.push_back(Eigen::Triplet<double>(
+                dofs_per_elem * (nn2 - 1) + row,
+                dofs_per_elem * (nn2 - 1) + col, it.value()));
           }
         }
       }
@@ -317,12 +328,8 @@ GlobalStiffAssembler::operator()(SparseMat& Kg,
   Kg.setFromTriplets(triplets.begin(), triplets.end());
 };
 
-void
-loadBCs(SparseMat& Kg,
-        SparseMat& force_vec,
-        const std::vector<BC>& BCs,
-        unsigned int num_nodes)
-{
+void loadBCs(SparseMat &Kg, SparseMat &force_vec, const std::vector<BC> &BCs,
+             unsigned int num_nodes) {
   unsigned int bc_idx;
   const unsigned int dofs_per_elem = DOF::NUM_DOFS;
   // calculate the index that marks beginning of Lagrange multiplier
@@ -344,12 +351,8 @@ loadBCs(SparseMat& Kg,
   }
 };
 
-void
-loadEquations(SparseMat& Kg,
-              const std::vector<Equation>& equations,
-              unsigned int num_nodes,
-              unsigned int num_bcs)
-{
+void loadEquations(SparseMat &Kg, const std::vector<Equation> &equations,
+                   unsigned int num_nodes, unsigned int num_bcs) {
   size_t row_idx, col_idx;
   const unsigned int dofs_per_elem = DOF::NUM_DOFS;
   const unsigned int global_add_idx = dofs_per_elem * num_nodes + num_bcs;
@@ -365,10 +368,8 @@ loadEquations(SparseMat& Kg,
   }
 };
 
-void
-loadTies(std::vector<Eigen::Triplet<double>>& triplets,
-         const std::vector<Tie>& ties)
-{
+void loadTies(std::vector<Eigen::Triplet<double>> &triplets,
+              const std::vector<Tie> &ties) {
   const unsigned int dofs_per_elem = DOF::NUM_DOFS;
   unsigned int nn1, nn2;
   double lmult, rmult, spring_constant;
@@ -385,30 +386,29 @@ loadTies(std::vector<Eigen::Triplet<double>>& triplets,
       spring_constant = j < 3 ? lmult : rmult;
 
       triplets.push_back(Eigen::Triplet<double>(
-        dofs_per_elem * nn1 + j, dofs_per_elem * nn1 + j, spring_constant));
+          dofs_per_elem * nn1 + j, dofs_per_elem * nn1 + j, spring_constant));
 
       triplets.push_back(Eigen::Triplet<double>(
-        dofs_per_elem * nn2 + j, dofs_per_elem * nn2 + j, spring_constant));
+          dofs_per_elem * nn2 + j, dofs_per_elem * nn2 + j, spring_constant));
 
       triplets.push_back(Eigen::Triplet<double>(
-        dofs_per_elem * nn1 + j, dofs_per_elem * nn2 + j, -spring_constant));
+          dofs_per_elem * nn1 + j, dofs_per_elem * nn2 + j, -spring_constant));
 
       triplets.push_back(Eigen::Triplet<double>(
-        dofs_per_elem * nn2 + j, dofs_per_elem * nn1 + j, -spring_constant));
+          dofs_per_elem * nn2 + j, dofs_per_elem * nn1 + j, -spring_constant));
     }
   }
 };
 
 std::vector<std::vector<double>>
-computeTieForces(const std::vector<Tie>& ties,
-                 const std::vector<std::vector<double>>& nodal_displacements)
-{
+computeTieForces(const std::vector<Tie> &ties,
+                 const std::vector<std::vector<double>> &nodal_displacements) {
   const unsigned int dofs_per_elem = DOF::NUM_DOFS;
   unsigned int nn1, nn2;
   double lmult, rmult, spring_constant, delta1, delta2;
 
   std::vector<std::vector<double>> tie_forces(
-    ties.size(), std::vector<double>(dofs_per_elem));
+      ties.size(), std::vector<double>(dofs_per_elem));
 
   for (size_t i = 0; i < ties.size(); ++i) {
     nn1 = ties[i].node_number_1;
@@ -428,9 +428,7 @@ computeTieForces(const std::vector<Tie>& ties,
   return tie_forces;
 }
 
-void
-loadForces(SparseMat& force_vec, const std::vector<Force>& forces)
-{
+void loadForces(SparseMat &force_vec, const std::vector<Force> &forces) {
   const unsigned int dofs_per_elem = DOF::NUM_DOFS;
   unsigned int idx;
 
@@ -440,14 +438,9 @@ loadForces(SparseMat& force_vec, const std::vector<Force>& forces)
   }
 };
 
-Summary
-solve(const Job& job,
-      const std::vector<BC>& BCs,
-      const std::vector<Force>& forces,
-      const std::vector<Tie>& ties,
-      const std::vector<Equation>& equations,
-      const Options& options)
-{
+Summary solve(const Job &job, const std::vector<BC> &BCs,
+              const std::vector<Force> &forces, const std::vector<Tie> &ties,
+              const std::vector<Equation> &equations, const Options &options) {
   auto initial_start_time = std::chrono::high_resolution_clock::now();
 
   Summary summary;
@@ -460,7 +453,7 @@ solve(const Job& job,
 
   // calculate size of global stiffness matrix and force vector
   const unsigned long size =
-    dofs_per_elem * job.nodes.size() + BCs.size() + equations.size();
+      dofs_per_elem * job.nodes.size() + BCs.size() + equations.size();
 
   // construct global stiffness matrix and force vector
   SparseMat Kg(size, size);
@@ -472,9 +465,9 @@ solve(const Job& job,
   GlobalStiffAssembler assembleK3D = GlobalStiffAssembler();
   assembleK3D(Kg, job, ties);
   auto end_time = std::chrono::high_resolution_clock::now();
-  auto delta_time =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
+  auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        end_time - start_time)
+                        .count();
   summary.assembly_time_in_ms = delta_time;
 
   if (options.verbose)
@@ -485,11 +478,12 @@ solve(const Job& job,
   Eigen::MatrixXd KgNoBCDense(Kg.block(0, 0, numberOfDoF, numberOfDoF));
   std::ofstream kgNoBCFile("KgNoBC.csv");
   if (kgNoBCFile.is_open()) {
-    const static Eigen::IOFormat CSVFormat(
-      Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+                                           Eigen::DontAlignCols, ", ", "\n");
     kgNoBCFile << KgNoBCDense.format(CSVFormat) << '\n';
     kgNoBCFile.close();
   }
+  std::cout << KgNoBCDense << std::endl;
 
   // load prescribed boundary conditions into stiffness matrix and force vector
   loadBCs(Kg, force_vec, BCs, job.nodes.size());
@@ -510,6 +504,22 @@ solve(const Job& job,
   // compress global stiffness matrix since all non-zero values have been added.
   Kg.prune(1.e-14);
   Kg.makeCompressed();
+  std::ofstream kgFile("Kg.csv");
+  if (kgFile.is_open()) {
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+                                           Eigen::DontAlignCols, ", ", "\n");
+    kgFile << KgDense.format(CSVFormat) << '\n';
+    kgFile.close();
+  }
+  std::ofstream forcesFile("forces.csv");
+  if (forcesFile.is_open()) {
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+                                           Eigen::DontAlignCols, ", ", "\n");
+    forcesFile << forcesVectorDense.format(CSVFormat) << '\n';
+    forcesFile.close();
+  }
+  Eigen::FullPivLU<Eigen::MatrixXd> lu(Kg);
+  //  assert(lu.isInvertible());
 
   // initialize solver based on whether MKL should be used
 #ifdef EIGEN_USE_MKL_ALL
@@ -523,9 +533,9 @@ solve(const Job& job,
   start_time = std::chrono::high_resolution_clock::now();
   solver.analyzePattern(Kg);
   end_time = std::chrono::high_resolution_clock::now();
-  delta_time =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
+  delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                     start_time)
+                   .count();
 
   summary.preprocessing_time_in_ms = delta_time;
 
@@ -539,26 +549,12 @@ solve(const Job& job,
   start_time = std::chrono::high_resolution_clock::now();
   solver.factorize(Kg);
   std::cout << solver.lastErrorMessage() << std::endl;
-  std::ofstream kgFile("Kg.csv");
-  if (kgFile.is_open()) {
-    const static Eigen::IOFormat CSVFormat(
-      Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    kgFile << KgDense.format(CSVFormat) << '\n';
-    kgFile.close();
-  }
-  std::ofstream forcesFile("forces.csv");
-  if (forcesFile.is_open()) {
-    const static Eigen::IOFormat CSVFormat(
-      Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    forcesFile << forcesVectorDense.format(CSVFormat) << '\n';
-    forcesFile.close();
-  }
   assert(solver.info() == Eigen::Success);
   end_time = std::chrono::high_resolution_clock::now();
 
-  delta_time =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
+  delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                     start_time)
+                   .count();
   summary.factorization_time_in_ms = delta_time;
 
   if (options.verbose)
@@ -569,9 +565,9 @@ solve(const Job& job,
   start_time = std::chrono::high_resolution_clock::now();
   SparseMat dispSparse = solver.solve(force_vec);
   end_time = std::chrono::high_resolution_clock::now();
-  delta_time =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
+  delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                     start_time)
+                   .count();
 
   summary.solve_time_in_ms = delta_time;
 
@@ -588,8 +584,8 @@ solve(const Job& job,
     for (unsigned int j = 0; j < dofs_per_elem; ++j)
       // round all values close to 0.0
       disp_vec[i][j] = std::abs(disp(dofs_per_elem * i + j)) < options.epsilon
-                         ? 0.0
-                         : disp(dofs_per_elem * i + j);
+                           ? 0.0
+                           : disp(dofs_per_elem * i + j);
   }
   summary.nodal_displacements = disp_vec;
 
@@ -605,22 +601,23 @@ solve(const Job& job,
   Eigen::VectorXd nodal_forces_dense(nodal_forces_sparse);
 
   std::vector<std::vector<double>> nodal_forces_vec(
-    job.nodes.size(), std::vector<double>(dofs_per_elem));
+      job.nodes.size(), std::vector<double>(dofs_per_elem));
   for (size_t i = 0; i < nodal_forces_vec.size(); ++i) {
     for (unsigned int j = 0; j < dofs_per_elem; ++j)
       // round all values close to 0.0
       nodal_forces_vec[i][j] =
-        std::abs(nodal_forces_dense(dofs_per_elem * i + j)) < options.epsilon
-          ? 0.0
-          : nodal_forces_dense(dofs_per_elem * i + j);
+          std::abs(nodal_forces_dense(dofs_per_elem * i + j)) < options.epsilon
+              ? 0.0
+              : nodal_forces_dense(dofs_per_elem * i + j);
   }
   summary.nodal_forces = nodal_forces_vec;
 
   end_time = std::chrono::high_resolution_clock::now();
 
   summary.nodal_forces_solve_time_in_ms =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                            start_time)
+          .count();
   //]
 
   // [ calculate forces associated with ties
@@ -629,9 +626,9 @@ solve(const Job& job,
     summary.tie_forces = computeTieForces(ties, disp_vec);
     end_time = std::chrono::high_resolution_clock::now();
     summary.tie_forces_solve_time_in_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
-                                                            start_time)
-        .count();
+        std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                              start_time)
+            .count();
   }
   // ]
 
@@ -639,37 +636,32 @@ solve(const Job& job,
   CSVParser csv;
   start_time = std::chrono::high_resolution_clock::now();
   if (options.save_nodal_displacements) {
-    csv.write(options.nodal_displacements_filename,
-              disp_vec,
-              options.csv_precision,
-              options.csv_delimiter);
+    csv.write(options.nodal_displacements_filename, disp_vec,
+              options.csv_precision, options.csv_delimiter);
   }
 
   if (options.save_nodal_forces) {
-    csv.write(options.nodal_forces_filename,
-              nodal_forces_vec,
-              options.csv_precision,
-              options.csv_delimiter);
+    csv.write(options.nodal_forces_filename, nodal_forces_vec,
+              options.csv_precision, options.csv_delimiter);
   }
 
   if (options.save_tie_forces) {
-    csv.write(options.tie_forces_filename,
-              summary.tie_forces,
-              options.csv_precision,
-              options.csv_delimiter);
+    csv.write(options.tie_forces_filename, summary.tie_forces,
+              options.csv_precision, options.csv_delimiter);
   }
 
   end_time = std::chrono::high_resolution_clock::now();
   summary.file_save_time_in_ms =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time)
-      .count();
+      std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                            start_time)
+          .count();
   // ]
 
   auto final_end_time = std::chrono::high_resolution_clock::now();
 
   delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                 final_end_time - initial_start_time)
-                 .count();
+                   final_end_time - initial_start_time)
+                   .count();
   summary.total_time_in_ms = delta_time;
 
   if (options.save_report) {
@@ -679,6 +671,47 @@ solve(const Job& job,
   if (options.verbose)
     std::cout << summary.FullReport();
 
+  // Compute per element forces
+  summary.element_forces.resize(job.elems.size(),
+                                std::vector<double>(2 * DOF::NUM_DOFS));
+  std::vector<LocalMatrix> perElemKlocalAelem =
+      assembleK3D.getPerElemKlocalAelem();
+
+  for (size_t elemIndex = 0; elemIndex < job.elems.size(); elemIndex++) {
+    // Assemble the displacements of the nodes of the beam
+    Eigen::Matrix<double, 12, 1> elemDisps;
+    // Displacements of the first node of the beam
+    const size_t nodeIndex0 = job.elems[elemIndex](0);
+    elemDisps(0) = summary.nodal_displacements[nodeIndex0][0];
+    elemDisps(1) = summary.nodal_displacements[nodeIndex0][1];
+    elemDisps(2) = summary.nodal_displacements[nodeIndex0][2];
+    elemDisps(3) = summary.nodal_displacements[nodeIndex0][3];
+    elemDisps(4) = summary.nodal_displacements[nodeIndex0][4];
+    elemDisps(5) = summary.nodal_displacements[nodeIndex0][5];
+    // Displacemen ts of the second node of the beam
+    const size_t nodeIndex1 = job.elems[elemIndex](1);
+    elemDisps(6) = summary.nodal_displacements[nodeIndex1][0];
+    elemDisps(7) = summary.nodal_displacements[nodeIndex1][1];
+    elemDisps(8) = summary.nodal_displacements[nodeIndex1][2];
+    elemDisps(9) = summary.nodal_displacements[nodeIndex1][3];
+    elemDisps(10) = summary.nodal_displacements[nodeIndex1][4];
+    elemDisps(11) = summary.nodal_displacements[nodeIndex1][5];
+
+    Eigen::Matrix<double, 12, 1> elemForces =
+        perElemKlocalAelem[elemIndex] * elemDisps;
+    for (int dofIndex = 0; dofIndex < DOF::NUM_DOFS; dofIndex++) {
+      summary.element_forces[elemIndex][static_cast<size_t>(dofIndex)] =
+          elemForces(dofIndex);
+    }
+    // meaning of sign = reference to first node:
+    // + = compression for axial, - traction
+    for (int dofIndex = DOF::NUM_DOFS; dofIndex < 2 * DOF::NUM_DOFS;
+         dofIndex++) {
+      summary.element_forces[elemIndex][static_cast<size_t>(dofIndex)] =
+          //-elemForces(dofIndex);
+          +elemForces(dofIndex);
+    }
+  }
   return summary;
 };
 
