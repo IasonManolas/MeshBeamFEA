@@ -121,23 +121,6 @@ private:
   void drawEdgeForces(const std::vector<std::vector<double>> &edgeForces);
   void drawColorbar();
   void drawColorTypeCombo();
-
-  // TODO: Could this function incorporate loading triangular meshes? Is there
-  // use for triangular meshes in this application?
-  static bool populateMesh(const std::string plyFilename,
-                           VCGEdgeMesh &edgeMesh);
-
-  void setSimulation(const Eigen::MatrixX3d &nodes,
-                     const Eigen::MatrixX2i &elements,
-                     const Eigen::VectorXi strfixedVertices,
-                     const std::vector<fea::Force> nodalForces);
-  void getVertices(const VCGTriMesh &mesh, Eigen::MatrixX3d &vertices) const;
-  void getNormals(const VCGTriMesh &mesh, Eigen::MatrixX3d &normals);
-
-  // edgeColors: force component->pairs of colors for each edge
-  void computeBeamColors(const std::vector<Eigen::MatrixXd> &edgeColors,
-                         const Eigen::MatrixX3d &beamMeshVertices);
-
   void convertToEigen(const std::vector<std::vector<double>> &edgeForces,
                       std::vector<Eigen::VectorXd> &eigenEdgeForces);
   // edgeForces: force component->pair of forces for each edge
