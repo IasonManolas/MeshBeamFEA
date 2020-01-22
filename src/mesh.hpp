@@ -1,10 +1,9 @@
 #ifndef MESHSTRUCTS_HPP
 #define MESHSTRUCTS_HPP
 
-#include <vcg/complex/complex.h>
-//#include <vcg/complex/append.h>
 #include "beam.hpp"
 #include <Eigen/Dense>
+#include <vcg/complex/complex.h>
 #include <wrap/io_trimesh/import.h>
 #include <wrap/nanoply/include/nanoplyWrapper.hpp>
 
@@ -12,9 +11,6 @@ struct IGLMesh {
   Eigen::MatrixX3d vertices;
   Eigen::MatrixX3i triFaces;
 };
-// template <typename T> Eigen::Vector3d convertToEigenVector(const T &p) {
-//  return Eigen::Vector3d(p.X(), p.Y(), p.Z());
-//}
 
 class VCGVertex;
 class VCGFace;
@@ -37,20 +33,6 @@ class VCGFace : public vcg::Face<VCGUsedTypes, vcg::face::VertexRef,
 class VCGTriMesh
     : public vcg::tri::TriMesh<std::vector<VCGVertex>, std::vector<VCGFace>,
                                std::vector<VCGEdge>> {
-  // computes the rotation that rotates vector a onto vector b
-  static void getRotationToMatchVectors(const Eigen::Vector3d &a,
-                                        const Eigen::Vector3d &b,
-                                        Eigen::Matrix3d &rotationMatrix) {
-    rotationMatrix.setIdentity();
-    Eigen::Matrix3d sscp;
-    sscp.setZero();
-    //    const Eigen::Vector3d u(
-    //        Eigen::Vector3d(0, 0, 1).cross(edgeVector.normalized()));
-    sscp.row(0) = Eigen::Vector3d(0, 0, 0);
-    sscp.row(1) = Eigen::Vector3d(0, 0, 0);
-    sscp.row(2) = Eigen::Vector3d(0, 0, 0);
-    //    rotationMatrix +=
-  }
 
 public:
   static Eigen::Vector3d convertToEigenVector(const VCGTriMesh::CoordType &p) {
@@ -192,7 +174,6 @@ public:
       R.SetColumn(0, {localX.x(), localX.y(), localX.z(), 0});
       R.SetColumn(1, {localY.x(), localY.y(), localY.z(), 0});
       R.SetColumn(2, {localZ.x(), localZ.y(), localZ.z(), 0});
-      R.print();
       vcg::Matrix44<double> T;
       T.SetTranslate({p0.x(), p0.y(), p0.z()});
       //      //      // TODO: It would be faster if I called the UpdatePosition
@@ -208,7 +189,6 @@ inline std::string convertToLowercase(const std::string &s) {
   std::string lowercaseString = s;
   std::transform(s.begin(), s.end(), lowercaseString.begin(),
                  [](unsigned char c) { return std::tolower(c); });
-  std::cout << lowercaseString << std::endl;
   return lowercaseString;
 }
 class VCGEdgeMeshEdgeType;
@@ -418,29 +398,7 @@ public:
 
     std::cout << "Mesh has " << EN() << " edges." << std::endl;
     return true;
-
-    // TODO: I need to make a concept for normals in edge meshes
-    // vcg::tri::UpdateTopology<VCGEdgeMesh>::AllocateEdge(mesh);
-    // vcg::tri::UpdateNormal<VCGEdgeMesh>::PerVertexNormalized(*this);
-    //    mesh.printInfo();
   }
-
-  // void computeDisplacedVertices(
-  //    const std::vector<std::vector<double>> vertexDisplacements,
-  //    Eigen::MatrixX3d &displacedVertices,
-  //    const float displacementFactor /*= 1*/) {
-  //   Eigen::MatrixX3d vertices;
-  //   this->getVertices(vertices);
-  //  displacedVertices = vertices;
-  //  for (size_t vertexIndex = 0;
-  //       vertexIndex < static_cast<size_t>(vertices.rows()); vertexIndex++) {
-  //    displacedVertices.row(static_cast<Eigen::Index>(vertexIndex)) +=
-  //        displacementFactor *
-  //        Eigen::Vector3d(vertexDisplacements[vertexIndex][0],
-  //                        vertexDisplacements[vertexIndex][1],
-  //                        vertexDisplacements[vertexIndex][2]);
-  //  }
-  //}
   Eigen::MatrixX2i getEigenEdges() const { return eigenEdges; }
   Eigen::MatrixX3d getEigenVertices() const { return eigenVertices; }
   Eigen::MatrixX3d getEigenEdgeNormals() const { return eigenEdgeNormals; }

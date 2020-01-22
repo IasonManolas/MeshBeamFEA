@@ -5,12 +5,6 @@
 #include <igl/list_to_matrix.h>
 #include <vcg/complex/algorithms/create/platonic.h>
 
-// Drawer::Drawer(const VCGMesh &m,
-//               const std::vector<std::vector<double>> &vDisplacements,
-//               const std::vector<std::vector<double>> &edgeForces)
-//    : vcgMesh(m), vertexDisplacements(vDisplacements), edgeForces(edgeForces)
-//    {}
-
 void Drawer::generateDrawingData(const Eigen::MatrixX3d &vertices,
                                  const Eigen::MatrixX3i &triangleFaces,
                                  ViewerData &drawingData) const {
@@ -91,20 +85,6 @@ void Drawer::markPositions(const string drawingDataID,
   viewer.addDrawingData(drawingDataID, drawingData);
 }
 
-// void Drawer::extractEdgeNodes(
-//    const VCGMesh &mesh, const Eigen::MatrixX3d &vertices,
-//    std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>> &edgeNodes) {
-//  edgeNodes.clear();
-//  edgeNodes.resize(mesh.EN());
-//  for (int edgeIndex = 0; edgeIndex < mesh.EN(); edgeIndex++) {
-//    const Eigen::Vector3d p0 =
-//        vertices.row(vcg::tri::Index(mesh, *mesh.edge[edgeIndex].cV(0)));
-//    const Eigen::Vector3d p1 =
-//        vertices.row(vcg::tri::Index(mesh, *mesh.edge[edgeIndex].cV(1)));
-//    edgeNodes[edgeIndex] = std::make_pair(p0, p1);
-//  }
-//}
-
 void Drawer::drawWorldAxis(const std::string &drawingDataID, Viewer &viewer,
                            const double &axisLength /*=1*/) {
   assert(!viewer.hasDrawingData(drawingDataID));
@@ -128,34 +108,6 @@ void Drawer::setBeamColors(const string &drawingDataID, const int &colorIndex,
   assert(!beamVerticesColors.empty());
   viewer.setColors(drawingDataID,
                    beamVerticesColors[static_cast<size_t>(colorIndex)]);
-}
-
-void Drawer::computeBeamColors(const Eigen::Vector3d &edgeVertex1,
-                               const Eigen::Vector3d &edgeVertex2,
-                               const Eigen::MatrixX3d &beamVertices,
-                               Eigen::MatrixX3d &beamVerticesColors) const {
-  beamVerticesColors.resize(beamVertices.rows(), 3);
-}
-
-void Drawer::computeBeamColors(const Eigen::MatrixX3d &edgeVertices,
-                               const Eigen::MatrixX3d &beamVertices,
-                               const Eigen::MatrixXd &edgeVerticesColors,
-                               Eigen::MatrixX3d beamVerticesColors) const {}
-
-void Drawer::addDrawingData(Viewer &viewer, const string &dataIdentifier,
-                            const ViewerData &drawingData) {
-  //  drawAxis(viewer);
-
-  //  IGLMesh iglMesh = vcgMesh.getIGLMesh();
-  //  addMesh(iglMesh.vertices, iglMesh.triFaces, true,
-  //  DataIndices::OriginalMesh,
-  //          viewer);
-
-  //  Eigen::MatrixX3d displacedVertices;
-  //  computeDisplacedVertices(iglMesh.vertices, vertexDisplacements,
-  //                           displacedVertices);
-  //  addMesh(displacedVertices, iglMesh.triFaces, false,
-  //          DataIndices::DisplacedMesh, viewer);
 }
 
 void Drawer::drawEdges(const string &drawingDataID,
@@ -233,14 +185,6 @@ void Drawer::setVertices(const std::string drawingDataID,
   ViewerData &drawingData = viewer.getDrawingData(drawingDataID);
   assert(drawingData.V.rows() == newPositions.rows());
   drawingData.set_vertices(newPositions);
-  //  viewer.draw();
-}
-
-void Drawer::setEdgePositions(const string &drawingDataID,
-                              const Eigen::MatrixX3d &newPositions,
-                              Viewer &viewer) const {
-  ViewerData &drawingData = viewer.getDrawingData(drawingDataID);
-  Eigen::MatrixXd &lines = drawingData.lines;
 }
 
 Drawer::Drawer() {}

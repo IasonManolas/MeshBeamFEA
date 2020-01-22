@@ -382,8 +382,6 @@ void GUI::drawEdgeForces(const std::vector<std::vector<double>> &edgeForces) {
   convertToColors(eigenEdgeForces, edgeColors);
   Eigen::MatrixXd &beamMeshVertices =
       viewer.getDrawingData(drawingDataIDs.displacedEdgeMeshID).V;
-  //    assert(beamMeshVertices.rows() == numberOfVerticesPerBeam *
-  //    edgeMesh.EN());
   drawer.computeBeamColors(edgeMesh.getEigenVertices(),
                            edgeMesh.getEigenEdges(), edgeColors,
                            beamMeshVertices);
@@ -430,13 +428,6 @@ void GUI::convertToColors(const std::vector<Eigen::VectorXd> &edgeForces,
 }
 
 void GUI::drawColorbar() {
-  //  ColorbarPlugin colorbar;
-  //  igl::ColorMapType newColormapType =
-  //      static_cast<igl::ColorMapType>(colorbar.draw_colormap_combo());
-  //  if (newColormapType != colormapType) {
-  //    colormapType = newColormapType;
-  //    drawNodalForces();
-  //  }
   Eigen::Vector4f backgroundColor(0.3f, 0.3f, 0.5f, 1.0f);
   backgroundColor *= 255;
   draw_colorbar(

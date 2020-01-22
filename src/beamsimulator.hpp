@@ -9,7 +9,6 @@
 struct SimulationOptions {
   std::vector<int> fixedVertices;
   std::vector<std::vector<int>> nodalForces;
-  SimulationOptions() {}
 };
 
 struct BeamSimulationProperties {
