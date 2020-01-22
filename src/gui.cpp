@@ -21,8 +21,6 @@ void parseIntegers(const std::string &str, std::vector<int> &result) {
 
 GUI::GUI() {
   createMenu();
-  Drawer drawer;
-  //  drawer.draw(viewer.iglViewer);
   viewer.launch();
 }
 
@@ -31,13 +29,24 @@ GUI::~GUI() {}
 void GUI::createMenu() {
   Menu *pMenu = new Menu;
   pMenu->callback_draw_viewer_menu = [&]() {
+    // Workspace
+    if (ImGui::CollapsingHeader("Workspace", ImGuiTreeNodeFlags_None)) {
+      const float w = ImGui::GetContentRegionAvailWidth();
+      const float p = ImGui::GetStyle().FramePadding.x;
+      if (ImGui::Button("Load##Workspace", ImVec2((w - p) / 2.f, 0))) {
+        viewer.loadScene();
+      }
+      ImGui::SameLine(0, p);
+      if (ImGui::Button("Save##Workspace", ImVec2((w - p) / 2.f, 0))) {
+        viewer.saveScene();
+      }
+      if (ImGui::Button("Clear", ImVec2(-1, 0))) {
+        viewer.clearDrawingData();
+        entries.simulation.nodalForces.clear();
+      }
+    }
+
     if (ImGui::CollapsingHeader("Edge Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
-      //      static bool shouldDrawDisplacedMesh = false;
-      //      if (ImGui::Checkbox("Show displaced mesh",
-      //      &shouldDrawDisplacedMesh)) {
-      //        viewer.data_list[DataIndices::DisplacedMesh].set_visible(
-      //            shouldDrawDisplacedMesh);
-      //      }
       float w = ImGui::GetContentRegionAvailWidth();
       float p = ImGui::GetStyle().FramePadding.x;
       if (ImGui::Button("Load##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
@@ -49,78 +58,111 @@ void GUI::createMenu() {
           drawEdgeMesh();
         }
       }
-
       if (ImGui::Checkbox("Show Edge Mesh", &entries.shouldDrawEdgeMesh)) {
         if (entries.shouldDrawEdgeMesh) {
           drawEdgeMesh();
         } else {
           viewer.setDrawingDataVisibility(drawingDataIDs.edgeMeshID, false);
         }
-        // viewer.data_list[DataIndices::BeamMesh].set_visible(shouldDrawBeamMesh);
-        // viewer.data_list[DataIndices::BeamMesh].set_colors(
-        //    beamVerticesColors[static_cast<size_t>(currentlyChosenForce)]);
+        viewer.setDrawingDataVisibility(drawingDataIDs.nodalForcesID,
+                                        entries.shouldDrawEdgeMesh);
       }
     }
-
-    //     //Workspace
-    //    if (ImGui::CollapsingHeader("Workspace",
-    //    ImGuiTreeNodeFlags_DefaultOpen)) {
-    //      float w = ImGui::GetContentRegionAvailWidth();
-    //      float p = ImGui::GetStyle().FramePadding.x;
-    //      if (ImGui::Button("Load##Workspace", ImVec2((w - p) / 2.f, 0)))
-    //      {
-    //        viewer.load_scene();
-    //      }
-    //      ImGui::SameLine(0, p);
-    //      if (ImGui::Button("Save##Workspace", ImVec2((w - p) / 2.f, 0)))
-    //      {
-    //        viewer.save_scene();
-    //      }
-    //    }
-
-    //        Eigen::MatrixX3d vertices;
-    //        originalMesh.getVertices(vertices);
-    //        Eigen::VectorXi edges;
-    //        originalMesh.getEdges(edges);
-    //        Eigen::MatrixX3d vertexNormals;
-    //        originalMesh.getNormals(vertexNormals);
-
-    //        simulator.setSimulation(vertices, edges, vertexNormals,
-    //        nodalForces); initializeDrawer();
-    //        simulator.setMesh(originalMesh);
-    //                ImGui::SameLine(0, p);
-    //                if (ImGui::Button("Save##Mesh", ImVec2((w - p)
-    //                / 2.f, 0))) {
-    //                  viewer.open_dialog_save_mesh();
-    //                }
-    //      }
-
-    //    // Viewing options
+    // Viewing options
     if (ImGui::CollapsingHeader("Viewing Options",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
-      //      if (ImGui::Button("Center object", ImVec2(-1, 0))) {
-      //        viewer.core().align_camera_center(viewer.data().V,
-      //        viewer.data().F);
+      const float w = ImGui::GetContentRegionAvailWidth();
+      const float p = ImGui::GetStyle().FramePadding.x;
+      if (ImGui::Button("Center object", ImVec2((w - p) / 2.f, 0))) {
+        viewer.centerCamera(drawingDataIDs.edgeMeshID);
+      }
+      ImGui::SameLine(0, p);
+      if (ImGui::Button("Snap canonical view", ImVec2((w - p) / 2.f, 0))) {
+        viewer.snapCanonicalView();
+      }
+      // Select rotation type
+      static RotationType rotationType{viewer.getRotationType()};
+      if (ImGui::Combo("Camera Type", reinterpret_cast<int *>(&rotationType),
+                       "Trackball\0Two Axes\0002D Mode\0\0")) {
+        viewer.setRotationType(rotationType);
+      }
+
+      // Orthographic view
+      static bool shouldUseOrthographicView =
+          viewer.getShouldUseOrthographicView();
+      if (ImGui::Checkbox("Orthographic view", &(shouldUseOrthographicView))) {
+        viewer.setUseOrthographicView(shouldUseOrthographicView);
+      }
+
+      static bool shouldInvertNormals = false;
+      if (ImGui::Checkbox("Invert normals", &(shouldInvertNormals))) {
+        viewer.setShouldInvertNormals(drawingDataIDs.edgeMeshID,
+                                      shouldInvertNormals);
+        viewer.setShouldInvertNormals(drawingDataIDs.displacedEdgeMeshID,
+                                      shouldInvertNormals);
+      }
+
+      //    // Helper for setting viewport specific mesh options
+      //    auto make_checkbox = [&](const char *label, unsigned int
+      //    &option)
+      //    {
+      //      return ImGui::Checkbox(
+      //          label, [&]() { return viewer.core().is_set(option); },
+      //          [&](bool value) { return viewer.core().set(option, value);
+      //          });
+      //    };
+
+      //    // Draw options
+      //    if (ImGui::CollapsingHeader("Draw Options",
+      //                                ImGuiTreeNodeFlags_DefaultOpen)) {
+      //      if (ImGui::Checkbox("Face-based",
+      //      &(viewer.data().face_based)))
+      //      {
+      //        viewer.data().dirty = igl::opengl::MeshGL::DIRTY_ALL;
       //      }
-      //      if (ImGui::Button("Snap canonical view", ImVec2(-1, 0))) {
-      //        viewer.snap_to_canonical_quaternion();
+      //      make_checkbox("Show texture", viewer.data().show_texture);
+      //      if (ImGui::Checkbox("Invert normals",
+      //      &(viewer.data().invert_normals))) {
+      //        viewer.data().dirty |= igl::opengl::MeshGL::DIRTY_NORMAL;
       //      }
+      //      make_checkbox("Show overlay", viewer.data().show_overlay);
+      //      make_checkbox("Show overlay depth",
+      //      viewer.data().show_overlay_depth);
+      //      ImGui::ColorEdit4("Background",
+      //      viewer.core().background_color.data(),
+      //                        ImGuiColorEditFlags_NoInputs |
+      //                            ImGuiColorEditFlags_PickerHueWheel);
+      //      ImGui::ColorEdit4("Line color",
+      //      viewer.data().line_color.data(),
+      //                        ImGuiColorEditFlags_NoInputs |
+      //                            ImGuiColorEditFlags_PickerHueWheel);
+      //      ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
+      //      ImGui::DragFloat("Shininess", &(viewer.data().shininess),
+      //      0.05f, 0.0f,
+      //                       100.0f);
+      //      ImGui::PopItemWidth();
+      //    }
+
+      //      // Overlays
+      //      if (ImGui::CollapsingHeader("Overlays",
+      //      ImGuiTreeNodeFlags_DefaultOpen)) {
+      //        make_checkbox("Wireframe", viewer.data().show_lines);
+      //        make_checkbox("Fill", viewer.data().show_faces);
+      //        ImGui::Checkbox("Show vertex labels",
+      //        &(viewer.data().show_vertid)); ImGui::Checkbox("Show faces
+      //            labels", &(viewer.data().show_faceid));
+      //      }
+
       static bool shouldDrawAxis = false;
       if (ImGui::Checkbox("Show axis", &shouldDrawAxis)) {
         if (viewer.hasDrawingData(drawingDataIDs.worldAxisID)) {
           viewer.setDrawingDataVisibility(drawingDataIDs.worldAxisID,
+
                                           shouldDrawAxis);
         } else {
           drawer.drawWorldAxis(drawingDataIDs.worldAxisID, viewer,
                                shouldDrawAxis);
         }
-      }
-
-      float w = ImGui::GetContentRegionAvailWidth();
-      float p = ImGui::GetStyle().FramePadding.x;
-      if (ImGui::Button("Clear", ImVec2((w - p) / 2.f, 0))) {
-        viewer.clearDrawingData();
-        entries.simulation.nodalForces.clear();
       }
       static NodalForceComponent force =
           entries.viewingOptions.chosenForceComponent;
@@ -128,99 +170,17 @@ void GUI::createMenu() {
                    "N\0Ty\0Tx\0Mx\0My\0Mz\0");
       if (force != entries.viewingOptions.chosenForceComponent) {
         entries.viewingOptions.chosenForceComponent = force;
-        drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
-                             entries.viewingOptions.chosenForceComponent,
-                             viewer);
+        if (viewer.hasDrawingData(drawingDataIDs.displacedEdgeMeshID)) {
+          drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
+                               entries.viewingOptions.chosenForceComponent,
+                               viewer);
+        }
+      }
+      drawColorTypeCombo();
+      if (viewer.hasDrawingData(drawingDataIDs.displacedEdgeMeshID)) {
+        drawColorbar();
       }
     }
-    drawColorTypeCombo();
-    if (viewer.hasDrawingData(drawingDataIDs.displacedEdgeMeshID)) {
-      drawColorbar();
-    }
-
-    //      // Zoom
-    //      ImGui::PushItemWidth(80 * pMenu->menu_scaling());
-    //      ImGui::DragFloat("Zoom", &(viewer.core().camera_zoom), 0.05f,
-    //      0.1f,
-    //                       20.0f);
-
-    //      // Select rotation type
-    //      int rotation_type =
-    //      static_cast<int>(viewer.core().rotation_type); static
-    //      Eigen::Quaternionf trackball_angle =
-    //          Eigen::Quaternionf::Identity();
-    //      static bool orthographic = true;
-    //      if (ImGui::Combo("Camera Type", &rotation_type,
-    //                       "Trackball\0Two Axes\0002D Mode\0\0")) {
-    //        using RT = igl::opengl::ViewerCore::RotationType;
-    //        auto new_type = static_cast<RT>(rotation_type);
-    //        if (new_type != viewer.core().rotation_type) {
-    //          if (new_type == RT::ROTATION_TYPE_NO_ROTATION) {
-    //            trackball_angle = viewer.core().trackball_angle;
-    //            orthographic = viewer.core().orthographic;
-    //            viewer.core().trackball_angle =
-    //            Eigen::Quaternionf::Identity();
-    //            viewer.core().orthographic = true;
-    //          } else if (viewer.core().rotation_type ==
-    //                     RT::ROTATION_TYPE_NO_ROTATION) {
-    //            viewer.core().trackball_angle = trackball_angle;
-    //            viewer.core().orthographic = orthographic;
-    //          }
-    //          viewer.core().set_rotation_type(new_type);
-    //        }
-
-    //      // Orthographic view
-    //      ImGui::Checkbox("Orthographic view",
-    //      &(viewer.core().orthographic)); ImGui::PopItemWidth();
-    //    }
-
-    //    // Helper for setting viewport specific mesh options
-    //    auto make_checkbox = [&](const char *label, unsigned int &option)
-    //    {
-    //      return ImGui::Checkbox(
-    //          label, [&]() { return viewer.core().is_set(option); },
-    //          [&](bool value) { return viewer.core().set(option, value);
-    //          });
-    //    };
-
-    //    // Draw options
-    //    if (ImGui::CollapsingHeader("Draw Options",
-    //                                ImGuiTreeNodeFlags_DefaultOpen)) {
-    //      if (ImGui::Checkbox("Face-based", &(viewer.data().face_based)))
-    //      {
-    //        viewer.data().dirty = igl::opengl::MeshGL::DIRTY_ALL;
-    //      }
-    //      make_checkbox("Show texture", viewer.data().show_texture);
-    //      if (ImGui::Checkbox("Invert normals",
-    //      &(viewer.data().invert_normals))) {
-    //        viewer.data().dirty |= igl::opengl::MeshGL::DIRTY_NORMAL;
-    //      }
-    //      make_checkbox("Show overlay", viewer.data().show_overlay);
-    //      make_checkbox("Show overlay depth",
-    //      viewer.data().show_overlay_depth);
-    //      ImGui::ColorEdit4("Background",
-    //      viewer.core().background_color.data(),
-    //                        ImGuiColorEditFlags_NoInputs |
-    //                            ImGuiColorEditFlags_PickerHueWheel);
-    //      ImGui::ColorEdit4("Line color", viewer.data().line_color.data(),
-    //                        ImGuiColorEditFlags_NoInputs |
-    //                            ImGuiColorEditFlags_PickerHueWheel);
-    //      ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
-    //      ImGui::DragFloat("Shininess", &(viewer.data().shininess), 0.05f,
-    //      0.0f,
-    //                       100.0f);
-    //      ImGui::PopItemWidth();
-    //    }
-
-    //    // Overlays
-    //    if (ImGui::CollapsingHeader("Overlays",
-    //    ImGuiTreeNodeFlags_DefaultOpen)) {
-    //      make_checkbox("Wireframe", viewer.data().show_lines);
-    //      make_checkbox("Fill", viewer.data().show_faces);
-    //      ImGui::Checkbox("Show vertex labels",
-    //      &(viewer.data().show_vertid)); ImGui::Checkbox("Show faces
-    //      labels", &(viewer.data().show_faceid));
-    //    }
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen)) {
       const float w = ImGui::GetContentRegionAvailWidth();
@@ -280,12 +240,15 @@ void GUI::createMenu() {
                               &entries.simulation.force.magnitude)) {
         }
 
+        const float w = ImGui::GetContentRegionAvailWidth();
+        const float p = ImGui::GetStyle().FramePadding.x;
         if (ImGui::Button("Add nodal \n force", ImVec2((w - p) / 2.f, 0))) {
           if (edgeMesh.IsEmpty())
             return;
           addNodalForce();
           drawNodalForces();
         }
+        ImGui::SameLine(0, p);
         if (ImGui::Button("Clear nodal \n forces", ImVec2((w - p) / 2.f, 0))) {
           if (edgeMesh.IsEmpty())
             return;
@@ -293,8 +256,6 @@ void GUI::createMenu() {
           viewer.deleteDrawingData(drawingDataIDs.nodalForcesID);
         }
       }
-      //    if (ImGui::CollapsingHeader("Results",
-      //    ImGuiTreeNodeFlags_DefaultOpen)) {
     }
   };
   viewer.addPlugin("Main menu", pMenu);
@@ -302,7 +263,6 @@ void GUI::createMenu() {
 
 bool GUI::loadEdgeMesh() {
   const std::string meshFilenameString = igl::file_dialog_open();
-  //      "/home/iason/Models/Line segments/lineSegments.ply";
   size_t last_dot = meshFilenameString.rfind('.');
   if (last_dot == std::string::npos) {
     std::cerr << "Error: No file extension found in " << meshFilenameString
@@ -482,8 +442,7 @@ void GUI::drawEdgeForces(const std::vector<std::vector<double>> &edgeForces) {
   drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
 
                        entries.viewingOptions.chosenForceComponent, viewer);
-  colorbar.init_colormaps(eigenEdgeForces,
-                          entries.viewingOptions.chosenColormapType);
+  init_colormaps(eigenEdgeForces, entries.viewingOptions.chosenColormapType);
 }
 
 void GUI::convertToEigen(
@@ -492,7 +451,7 @@ void GUI::convertToEigen(
 
   // Convert to vector of eigen matrices of the form force component-> per
   // Edge
-  // force value
+  // force values does global su
   const int numDof = 6;
   const size_t numberOfEdges = forcesPerEdgePerComponent.size();
   forcesPerComponentPerEdge =
@@ -532,7 +491,7 @@ void GUI::drawColorbar() {
   //  }
   Eigen::Vector4f backgroundColor(0.3f, 0.3f, 0.5f, 1.0f);
   backgroundColor *= 255;
-  colorbar.draw_colorbar(
+  draw_colorbar(
       entries.viewingOptions.chosenForceComponent,
       minMaxForcesPerForceComponent[entries.viewingOptions.chosenForceComponent]
           .first,
@@ -559,11 +518,6 @@ void GUI::drawColorTypeCombo() {
         selected_index = n;
       }
       ImGui::SameLine(0, 0);
-      //      ImGui::Image(
-      //          reinterpret_cast<ImTextureID>(colormaps_[n]),
-      //          ImVec2(ImGui::GetTextLineHeight(),
-      //          ImGui::GetTextLineHeight()), ImVec2(0, 0), ImVec2(1, 1));
-      //      ImGui::SameLine();
       ImGui::Text("%s", items[n]);
       if (is_selected) {
         ImGui::SetItemDefaultFocus();
@@ -578,79 +532,12 @@ void GUI::drawColorTypeCombo() {
   ImGui::SetCursorScreenPos(ImVec2(combo_pos.x + style.FramePadding.x,
                                    combo_pos.y + style.FramePadding.y));
   float h = ImGui::GetTextLineHeight();
-  //  ImGui::Image(reinterpret_cast<ImTextureID>(colormaps_[selected_index]),
-  //               ImVec2(h, h));
-  //  ImGui::SameLine();
   ImGui::Text("%s", current_item);
   ImGui::SetCursorScreenPos(backup_pos);
 
   if (selected_index != entries.viewingOptions.chosenColormapType) {
     entries.viewingOptions.chosenColormapType =
         static_cast<igl::ColorMapType>(selected_index);
-    std::vector<Eigen::VectorXd> eigenEdgeForces;
-    convertToEigen(simulator.getResults().element_forces, eigenEdgeForces);
-    minMaxForcesPerForceComponent.clear();
-    minMaxForcesPerForceComponent.resize(
-        NodalForceComponent::NumberOfForceComponents);
-    for (size_t fc = Fx; fc < NodalForceComponent::NumberOfForceComponents;
-         fc++) {
-      minMaxForcesPerForceComponent[fc] = std::make_pair(
-          eigenEdgeForces[fc].minCoeff(), eigenEdgeForces[fc].maxCoeff());
-    }
-    std::vector<Eigen::MatrixXd> edgeColors;
-    convertToColors(eigenEdgeForces, edgeColors);
-    colorbar.init_colormaps(eigenEdgeForces,
-                            entries.viewingOptions.chosenColormapType);
-
-    Eigen::MatrixXd &beamMeshVertices =
-        viewer.getDrawingData(drawingDataIDs.displacedEdgeMeshID).V;
-    drawer.computeBeamColors(edgeMesh.getEigenVertices(),
-                             edgeMesh.getEigenEdges(), edgeColors,
-                             beamMeshVertices);
-    drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
-                         entries.viewingOptions.chosenForceComponent, viewer);
+    drawEdgeForces(simulator.getResults().element_forces);
   }
-}
-
-void ColorbarPlugin::init_colormaps(std::vector<Eigen::VectorXd> vectorOfValues,
-                                    const igl::ColorMapType &colormapType) {
-  colormaps_.clear();
-  for (Eigen::VectorXd &values : vectorOfValues) {
-    std::sort(values.data(), values.data() + values.size());
-    Eigen::MatrixX3d rgbColors;
-    Eigen::MatrixXd valuesMatrix(values);
-    igl::colormap(colormapType, valuesMatrix, true, rgbColors);
-    GLuint id = 0;
-    texture_from_colormap(rgbColors, id);
-    colormaps_.push_back(id);
-  }
-}
-
-// Draws a combo box for selecting the colormap
-int ColorbarPlugin::draw_colormap_combo() const {}
-
-// Draws the actual colorbar with min/max values
-void ColorbarPlugin::draw_colorbar(
-    const int colormapIndex, float xmin, float xmax,
-    const Eigen::Vector4f &background_color) const {
-  ImVec4 color(0, 0, 0, 1);
-  auto rgb = background_color;
-  // http://stackoverflow.com/a/3943023/112731
-  if (rgb[0] * 0.299 + rgb[1] * 0.587 + rgb[2] * 0.114 <= 186) {
-    color = ImVec4(1, 1, 1, 1);
-  }
-  float w = 100;
-  float h = 20;
-  ImGui::BeginGroup();
-  ImGui::BeginGroup();
-  ImGui::Image(reinterpret_cast<ImTextureID>(colormaps_[colormapIndex]),
-               ImVec2(w, h));
-  ImGui::EndGroup();
-  ImGui::TextColored(color, "%.3g", xmin);
-  ImGui::SameLine();
-  ImGui::Dummy(ImVec2(w - 40, 0)); // TODO: -40 is wrong since the space depends
-                                   // of the digits of min and max
-  ImGui::SameLine();
-  ImGui::TextColored(color, "%.3g", xmax);
-  ImGui::EndGroup();
 }
