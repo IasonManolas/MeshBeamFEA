@@ -109,10 +109,6 @@ void Viewer::clearDrawingData() {
   generatedDrawingDataMap.clear();
 }
 
-bool Viewer::loadScene() { return iglViewer.load_scene(); }
-
-bool Viewer::saveScene() { return iglViewer.save_scene(); }
-
 void Viewer::centerCamera(const std::string &drawingDataID) {
   iglViewer.core().align_camera_center(getDrawingData(drawingDataID).V,
                                        getDrawingData(drawingDataID).F);

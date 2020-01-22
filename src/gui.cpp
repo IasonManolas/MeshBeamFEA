@@ -29,26 +29,19 @@ GUI::~GUI() {}
 void GUI::createMenu() {
   Menu *pMenu = new Menu;
   pMenu->callback_draw_viewer_menu = [&]() {
-    // Workspace
+    const float w = ImGui::GetContentRegionAvailWidth();
+    const float p = ImGui::GetStyle().FramePadding.x;
+
+    // Workspace tab
     if (ImGui::CollapsingHeader("Workspace", ImGuiTreeNodeFlags_None)) {
-      const float w = ImGui::GetContentRegionAvailWidth();
-      const float p = ImGui::GetStyle().FramePadding.x;
-      if (ImGui::Button("Load##Workspace", ImVec2((w - p) / 2.f, 0))) {
-        viewer.loadScene();
-      }
-      ImGui::SameLine(0, p);
-      if (ImGui::Button("Save##Workspace", ImVec2((w - p) / 2.f, 0))) {
-        viewer.saveScene();
-      }
       if (ImGui::Button("Clear", ImVec2(-1, 0))) {
         viewer.clearDrawingData();
         entries.simulation.nodalForces.clear();
       }
     }
 
+    // Edge mesh tab
     if (ImGui::CollapsingHeader("Edge Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
-      float w = ImGui::GetContentRegionAvailWidth();
-      float p = ImGui::GetStyle().FramePadding.x;
       if (ImGui::Button("Load##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
         if (viewer.hasDrawingData(drawingDataIDs.edgeMeshID)) {
           viewer.deleteDrawingData(drawingDataIDs.edgeMeshID);
@@ -68,11 +61,10 @@ void GUI::createMenu() {
                                         entries.shouldDrawEdgeMesh);
       }
     }
-    // Viewing options
+
+    // Viewing options tab
     if (ImGui::CollapsingHeader("Viewing Options",
                                 ImGuiTreeNodeFlags_DefaultOpen)) {
-      const float w = ImGui::GetContentRegionAvailWidth();
-      const float p = ImGui::GetStyle().FramePadding.x;
       if (ImGui::Button("Center object", ImVec2((w - p) / 2.f, 0))) {
         viewer.centerCamera(drawingDataIDs.edgeMeshID);
       }
@@ -86,14 +78,13 @@ void GUI::createMenu() {
                        "Trackball\0Two Axes\0002D Mode\0\0")) {
         viewer.setRotationType(rotationType);
       }
-
       // Orthographic view
       static bool shouldUseOrthographicView =
           viewer.getShouldUseOrthographicView();
       if (ImGui::Checkbox("Orthographic view", &(shouldUseOrthographicView))) {
         viewer.setUseOrthographicView(shouldUseOrthographicView);
       }
-
+      // Invert normals
       static bool shouldInvertNormals = false;
       if (ImGui::Checkbox("Invert normals", &(shouldInvertNormals))) {
         viewer.setShouldInvertNormals(drawingDataIDs.edgeMeshID,
@@ -101,69 +92,18 @@ void GUI::createMenu() {
         viewer.setShouldInvertNormals(drawingDataIDs.displacedEdgeMeshID,
                                       shouldInvertNormals);
       }
-
-      //    // Helper for setting viewport specific mesh options
-      //    auto make_checkbox = [&](const char *label, unsigned int
-      //    &option)
-      //    {
-      //      return ImGui::Checkbox(
-      //          label, [&]() { return viewer.core().is_set(option); },
-      //          [&](bool value) { return viewer.core().set(option, value);
-      //          });
-      //    };
-
-      //    // Draw options
-      //    if (ImGui::CollapsingHeader("Draw Options",
-      //                                ImGuiTreeNodeFlags_DefaultOpen)) {
-      //      if (ImGui::Checkbox("Face-based",
-      //      &(viewer.data().face_based)))
-      //      {
-      //        viewer.data().dirty = igl::opengl::MeshGL::DIRTY_ALL;
-      //      }
-      //      make_checkbox("Show texture", viewer.data().show_texture);
-      //      if (ImGui::Checkbox("Invert normals",
-      //      &(viewer.data().invert_normals))) {
-      //        viewer.data().dirty |= igl::opengl::MeshGL::DIRTY_NORMAL;
-      //      }
-      //      make_checkbox("Show overlay", viewer.data().show_overlay);
-      //      make_checkbox("Show overlay depth",
-      //      viewer.data().show_overlay_depth);
-      //      ImGui::ColorEdit4("Background",
-      //      viewer.core().background_color.data(),
-      //                        ImGuiColorEditFlags_NoInputs |
-      //                            ImGuiColorEditFlags_PickerHueWheel);
-      //      ImGui::ColorEdit4("Line color",
-      //      viewer.data().line_color.data(),
-      //                        ImGuiColorEditFlags_NoInputs |
-      //                            ImGuiColorEditFlags_PickerHueWheel);
-      //      ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.3f);
-      //      ImGui::DragFloat("Shininess", &(viewer.data().shininess),
-      //      0.05f, 0.0f,
-      //                       100.0f);
-      //      ImGui::PopItemWidth();
-      //    }
-
-      //      // Overlays
-      //      if (ImGui::CollapsingHeader("Overlays",
-      //      ImGuiTreeNodeFlags_DefaultOpen)) {
-      //        make_checkbox("Wireframe", viewer.data().show_lines);
-      //        make_checkbox("Fill", viewer.data().show_faces);
-      //        ImGui::Checkbox("Show vertex labels",
-      //        &(viewer.data().show_vertid)); ImGui::Checkbox("Show faces
-      //            labels", &(viewer.data().show_faceid));
-      //      }
-
+      // Draw axis
       static bool shouldDrawAxis = false;
       if (ImGui::Checkbox("Show axis", &shouldDrawAxis)) {
         if (viewer.hasDrawingData(drawingDataIDs.worldAxisID)) {
           viewer.setDrawingDataVisibility(drawingDataIDs.worldAxisID,
-
                                           shouldDrawAxis);
         } else {
           drawer.drawWorldAxis(drawingDataIDs.worldAxisID, viewer,
                                shouldDrawAxis);
         }
       }
+      // Choose force component
       static NodalForceComponent force =
           entries.viewingOptions.chosenForceComponent;
       ImGui::Combo("Force visualization", reinterpret_cast<int *>(&force),
@@ -176,20 +116,23 @@ void GUI::createMenu() {
                                viewer);
         }
       }
+      // Draw force component picker
       drawColorTypeCombo();
+      // Draw colorbar if there are simulation data
       if (viewer.hasDrawingData(drawingDataIDs.displacedEdgeMeshID)) {
         drawColorbar();
       }
     }
 
+    // Simulation tab
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen)) {
-      const float w = ImGui::GetContentRegionAvailWidth();
-      const float p = ImGui::GetStyle().FramePadding.x;
+      // Execute simulation
       if (ImGui::Button("Execute \n Simulation", ImVec2((w - p) / 2.f, 0))) {
         if (edgeMesh.IsEmpty())
           return;
         executeSimulation();
       }
+      // Fix vertices
       static std::string strfixedVertices;
       if (ImGui::InputText("Fixed Vertices", strfixedVertices)) {
         if (edgeMesh.IsEmpty())
@@ -216,9 +159,10 @@ void GUI::createMenu() {
                                viewer);
         }
       }
-
+      // Set nodal force
       if (ImGui::CollapsingHeader("Nodal Force",
                                   ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Set nodal force vertex index
         if (ImGui::InputInt("Vertex Index",
                             &entries.simulation.force.vertexIndex)) {
           if (edgeMesh.IsEmpty())
@@ -228,6 +172,7 @@ void GUI::createMenu() {
                       << std::endl;
           }
         }
+        // Set nodal force DoF [0,5]
         if (ImGui::InputInt("Force DoF", &entries.simulation.force.dof)) {
           if (edgeMesh.IsEmpty())
             return;
@@ -236,12 +181,11 @@ void GUI::createMenu() {
             std::cerr << "DoF must be in the range [0,5]" << std::endl;
           }
         }
+        // Set nodal force magnitude
         if (ImGui::InputFloat("Force Magnitude",
                               &entries.simulation.force.magnitude)) {
         }
-
-        const float w = ImGui::GetContentRegionAvailWidth();
-        const float p = ImGui::GetStyle().FramePadding.x;
+        // Add nodal force
         if (ImGui::Button("Add nodal \n force", ImVec2((w - p) / 2.f, 0))) {
           if (edgeMesh.IsEmpty())
             return;
@@ -249,6 +193,7 @@ void GUI::createMenu() {
           drawNodalForces();
         }
         ImGui::SameLine(0, p);
+        // Clear nodal forces
         if (ImGui::Button("Clear nodal \n forces", ImVec2((w - p) / 2.f, 0))) {
           if (edgeMesh.IsEmpty())
             return;
@@ -313,16 +258,19 @@ void GUI::executeSimulation() {
   if (viewer.hasDrawingData(drawingDataIDs.displacedEdgeMeshID)) {
     viewer.deleteDrawingData(drawingDataIDs.displacedEdgeMeshID);
   }
-  if (viewer.hasDrawingData(drawingDataIDs.beamForcesID)) {
-    viewer.deleteDrawingData(drawingDataIDs.beamForcesID);
-  }
   setSimulation();
 
   const auto simulationResults = simulator.executeSimulation();
 
-  drawDisplacedEdgeMesh(simulationResults.nodal_displacements);
+  drawSimulationResults(simulationResults.nodal_displacements,
+                        simulationResults.element_forces);
+}
 
-  drawEdgeForces(simulationResults.element_forces);
+void GUI::drawSimulationResults(
+    const std::vector<std::vector<double>> &nodalDisplacements,
+    const std::vector<std::vector<double>> &elementForces) {
+  drawDisplacedEdgeMesh(nodalDisplacements);
+  drawEdgeForces(elementForces);
 }
 
 void GUI::addNodalForce() {

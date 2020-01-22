@@ -36,8 +36,6 @@ public:
   void launch();
   void draw();
   void clearDrawingData();
-  bool loadScene();
-  bool saveScene();
   void centerCamera(const std::string &drawingDataID);
   void snapCanonicalView();
   RotationType getRotationType();

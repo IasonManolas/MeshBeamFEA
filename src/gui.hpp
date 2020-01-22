@@ -30,7 +30,6 @@ class GUI : public Colorbar {
     const std::string displacedEdgeMeshID = "displaced mesh";
     const std::string fixedNodesID = "fixed vertices";
     const std::string nodalForcesID = "nodal forces";
-    const std::string beamForcesID = "beam forces";
   } drawingDataIDs;
 
 private:
@@ -57,6 +56,10 @@ private:
   // edgeForces: force component->pair of forces for each edge
   void convertToColors(const std::vector<Eigen::VectorXd> &edgeForces,
                        std::vector<Eigen::MatrixXd> &edgeColors) const;
+
+  void drawSimulationResults(
+      const std::vector<std::vector<double>> &nodalDisplacements,
+      const std::vector<std::vector<double>> &elementForces);
 
 public:
   GUI();
