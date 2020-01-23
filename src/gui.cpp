@@ -145,7 +145,7 @@ void GUI::createMenu() {
         if (!entries.simulation.fixedVertices.empty()) {
           Eigen::MatrixX3d fixedNodePositions(
               entries.simulation.fixedVertices.size(), 3);
-          for (int fixedNodeIndex = 0;
+          for (gsl::index fixedNodeIndex = 0;
                fixedNodeIndex < entries.simulation.fixedVertices.size();
                fixedNodeIndex++) {
             fixedNodePositions.row(fixedNodeIndex) =
@@ -163,8 +163,9 @@ void GUI::createMenu() {
       if (ImGui::CollapsingHeader("Nodal Force",
                                   ImGuiTreeNodeFlags_DefaultOpen)) {
         // Set nodal force vertex index
-        if (ImGui::InputInt("Vertex Index",
-                            &entries.simulation.force.vertexIndex)) {
+        static int vertexIndex = entries.simulation.force.vertexIndex;
+        if (ImGui::InputInt("Vertex Index", &vertexIndex)) {
+          entries.simulation.force.vertexIndex = vertexIndex;
           if (edgeMesh.IsEmpty())
             return;
           if (entries.simulation.force.vertexIndex < 0) {
@@ -278,7 +279,7 @@ void GUI::addNodalForce() {
       entries.simulation.force.dof < 6 && entries.simulation.force.dof >= 0) {
     NodalForce force;
     force.dof = entries.simulation.force.dof;
-    force.index = static_cast<size_t>(entries.simulation.force.vertexIndex);
+    force.index = entries.simulation.force.vertexIndex;
     force.magnitude = static_cast<double>(entries.simulation.force.magnitude);
     entries.simulation.nodalForces.push_back(force);
     std::cout << "Force <" << force.dof << "," << force.index << ","
@@ -293,9 +294,9 @@ void GUI::drawNodalForces() {
     viewer.deleteDrawingData(drawingDataIDs.nodalForcesID);
   }
 
-  std::unordered_map<int, Eigen::Vector3d> nodeIndexForceMap;
-  for (int nodeIndex = 0; nodeIndex < entries.simulation.nodalForces.size();
-       nodeIndex++) {
+  std::unordered_map<gsl::index, Eigen::Vector3d> nodeIndexForceMap;
+  for (gsl::index nodeIndex = 0;
+       nodeIndex < entries.simulation.nodalForces.size(); nodeIndex++) {
     const NodalForce &nodalForce = entries.simulation.nodalForces[nodeIndex];
     switch (nodalForce.dof) {
     case 0:
@@ -321,7 +322,7 @@ void GUI::drawNodalForces() {
   Eigen::MatrixX3d nodePositions(nodeIndexForceMap.size(), 3),
       edgeEndPositions(nodeIndexForceMap.size(), 3);
   Eigen::VectorXd forcesMagnitude(nodeIndexForceMap.size());
-  int forceIndex = 0;
+  gsl::index forceIndex = 0;
   for (auto it = nodeIndexForceMap.begin(); it != nodeIndexForceMap.end();
        it++) {
     const Eigen::Vector3d &forceVector = it->second;
@@ -332,7 +333,7 @@ void GUI::drawNodalForces() {
   const double maxForce = forcesMagnitude.maxCoeff();
   for (auto it = nodeIndexForceMap.begin(); it != nodeIndexForceMap.end();
        it++) {
-    const int &nodeIndex = it->first;
+    const gsl::index &nodeIndex = it->first;
     const Eigen::Vector3d &forceVector = it->second;
     // fill position
     nodePositions.row(forceIndex) =
@@ -402,8 +403,8 @@ void GUI::convertToEigen(
   const size_t numberOfEdges = forcesPerEdgePerComponent.size();
   forcesPerComponentPerEdge =
       std::vector<Eigen::VectorXd>(numDof, Eigen::VectorXd(2 * numberOfEdges));
-  for (int edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
-    for (int forceComponentIndex = NodalForceComponent::Fx;
+  for (gsl::index edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
+    for (gsl::index forceComponentIndex = NodalForceComponent::Fx;
          forceComponentIndex < numDof; forceComponentIndex++) {
       (forcesPerComponentPerEdge[forceComponentIndex])(2 * edgeIndex) =
           forcesPerEdgePerComponent[edgeIndex][forceComponentIndex];
@@ -419,7 +420,7 @@ void GUI::convertToColors(const std::vector<Eigen::VectorXd> &edgeForces,
   const int numDof = NodalForceComponent::NumberOfForceComponents;
   edgeColors.resize(numDof);
   // compute the color of the vertex of each edge
-  for (int forceComponentIndex = NodalForceComponent::Fx;
+  for (gsl::index forceComponentIndex = NodalForceComponent::Fx;
        forceComponentIndex < numDof; forceComponentIndex++) {
     igl::colormap(entries.viewingOptions.chosenColormapType,
                   edgeForces[forceComponentIndex], true,
@@ -440,14 +441,14 @@ void GUI::drawColorbar() {
 }
 
 void GUI::drawColorTypeCombo() {
-  const char *items[]{
+  const std::vector<std::string> items{
       "Inferno", "Jet", "Magma", "Parula", "Plasma", "Viridis",
   };
-  static int selected_index = entries.viewingOptions.chosenColormapType;
-  static const char *current_item = items[selected_index];
+  static gsl::index selected_index = entries.viewingOptions.chosenColormapType;
+  static std::string current_item = items[selected_index];
   ImVec2 combo_pos = ImGui::GetCursorScreenPos();
   if (ImGui::BeginCombo("Coloring Type##combo", "")) {
-    for (int n = 0; n < IM_ARRAYSIZE(items); ++n) {
+    for (gsl::index n = 0; n < items.size(); ++n) {
       // You can store your selection however you want, outside or inside your
       // objects
       bool is_selected = (current_item == items[n]);
@@ -457,7 +458,7 @@ void GUI::drawColorTypeCombo() {
         selected_index = n;
       }
       ImGui::SameLine(0, 0);
-      ImGui::Text("%s", items[n]);
+      ImGui::Text("%s", items[n].c_str());
       if (is_selected) {
         ImGui::SetItemDefaultFocus();
       }
@@ -471,7 +472,7 @@ void GUI::drawColorTypeCombo() {
   ImGui::SetCursorScreenPos(ImVec2(combo_pos.x + style.FramePadding.x,
                                    combo_pos.y + style.FramePadding.y));
   float h = ImGui::GetTextLineHeight();
-  ImGui::Text("%s", current_item);
+  ImGui::Text("%s", current_item.c_str());
   ImGui::SetCursorScreenPos(backup_pos);
 
   if (selected_index != entries.viewingOptions.chosenColormapType) {

@@ -62,8 +62,8 @@ public:
                          const Eigen::MatrixX2i &edges,
                          const std::vector<Eigen::MatrixXd> &edgeColors,
                          const Eigen::MatrixX3d &beamMeshVertices);
-  void setBeamColors(const std::string &drawingDataID, const int &colorIndex,
-                     Viewer &viewer) const;
+  void setBeamColors(const std::string &drawingDataID,
+                     const gsl::index &colorIndex, Viewer &viewer) const;
 };
 
 #endif // DRAWER_HPP

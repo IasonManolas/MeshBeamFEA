@@ -78,7 +78,7 @@ void Viewer::deleteDrawingData(const std::string &drawingDataID) {
   }
   // decrease index of elements in map that come after the element to be
   // deleted in the vector of drawing data
-  const size_t drawingDataIndexToBeDeleted =
+  const gsl::index drawingDataIndexToBeDeleted =
       generatedDrawingDataMap[drawingDataID];
   for (auto &drawingDataEntryPair : generatedDrawingDataMap) {
     if (drawingDataEntryPair.second > drawingDataIndexToBeDeleted) {

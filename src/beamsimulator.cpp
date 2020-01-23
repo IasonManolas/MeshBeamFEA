@@ -1,5 +1,6 @@
 #include "beamsimulator.hpp"
 #include <Eigen/Core>
+#include <gsl/gsl>
 #include <iostream>
 #include <vcg/complex/algorithms/create/platonic.h>
 #include <vcg/complex/algorithms/update/normal.h>
@@ -22,10 +23,9 @@ void BeamSimulator::setSimulation(
 
 void BeamSimulator::setNodes(const Eigen::MatrixX3d &nodes) {
   const long int numberOfNodes = nodes.rows();
-  this->nodes.resize(static_cast<size_t>(numberOfNodes));
-  for (int nodeIndex = 0; nodeIndex < nodes.rows(); nodeIndex++) {
-    this->nodes[static_cast<size_t>(nodeIndex)] =
-        static_cast<fea::Node>(nodes.row(nodeIndex));
+  this->nodes.resize(gsl::narrow_cast<int>(numberOfNodes));
+  for (gsl::index nodeIndex = 0; nodeIndex < nodes.rows(); nodeIndex++) {
+    this->nodes[nodeIndex] = static_cast<fea::Node>(nodes.row(nodeIndex));
   }
 }
 
@@ -38,12 +38,11 @@ void BeamSimulator::setElements(
   const long int numberOfEdges = elements.rows();
   this->elements.clear();
   this->elements.resize(static_cast<size_t>(numberOfEdges));
-  for (int edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
-    const int nodeIndex0 = elements(edgeIndex, 0);
-    const int nodeIndex1 = elements(edgeIndex, 1);
+  for (gsl::index edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
+    const gsl::index nodeIndex0 = elements(edgeIndex, 0);
+    const gsl::index nodeIndex1 = elements(edgeIndex, 1);
     const bool nodeIndicesAreInRange =
-        static_cast<size_t>(nodeIndex0) < nodes.size() &&
-        static_cast<size_t>(nodeIndex1) < nodes.size();
+        nodeIndex0 < nodes.size() && nodeIndex1 < nodes.size();
     assert(nodeIndicesAreInRange);
     const std::vector<double> nAverageVector{elementNormals(edgeIndex, 0),
                                              elementNormals(edgeIndex, 1),
@@ -52,22 +51,22 @@ void BeamSimulator::setElements(
                                   beamMaterial[edgeIndex]);
     fea::Props feaProperties(prop.EA, prop.EIz, prop.EIy, prop.GJ,
                              nAverageVector);
-    fea::Elem element(static_cast<unsigned int>(nodeIndex0),
-                      static_cast<unsigned int>(nodeIndex1), feaProperties);
-    this->elements[static_cast<size_t>(edgeIndex)] = element;
+    fea::Elem element(nodeIndex0, nodeIndex1, feaProperties);
+    this->elements[edgeIndex] = element;
   }
 }
 
 void BeamSimulator::setFixedNodes(const Eigen::VectorXi &fixedNodes) {
   boundaryConditions.clear();
   boundaryConditions.resize(static_cast<size_t>(6 * fixedNodes.rows()));
-  unsigned int boundaryConditionIndex = 0;
-  for (int i = 0; i < fixedNodes.rows(); i++) {
-    if (fixedNodes(i) < 0 ||
-        static_cast<size_t>(fixedNodes(i)) > nodes.size() - 1) {
+  gsl::index boundaryConditionIndex = 0;
+  for (gsl::index fixedNodeIndex = 0; fixedNodeIndex < fixedNodes.rows();
+       fixedNodeIndex++) {
+    if (fixedNodes(fixedNodeIndex) < 0 ||
+        static_cast<size_t>(fixedNodes(fixedNodeIndex)) > nodes.size() - 1) {
       throw std::runtime_error{"Vertex index is outside of valid range."};
     }
-    const unsigned int vertexIndex = static_cast<unsigned int>(fixedNodes(i));
+    const gsl::index vertexIndex = fixedNodes(fixedNodeIndex);
     fea::BC bcTX(vertexIndex, fea::DOF::DISPLACEMENT_X, 0);
     boundaryConditions[boundaryConditionIndex++] = bcTX;
     fea::BC bcTY(vertexIndex, fea::DOF::DISPLACEMENT_Y, 0);
@@ -86,7 +85,8 @@ void BeamSimulator::setFixedNodes(const Eigen::VectorXi &fixedNodes) {
 void BeamSimulator::setNodalForces(const std::vector<NodalForce> &nodalForces) {
   this->nodalForces.clear();
   this->nodalForces.resize(nodalForces.size());
-  for (size_t forceIndex = 0; forceIndex < nodalForces.size(); forceIndex++) {
+  for (gsl::index forceIndex = 0; forceIndex < nodalForces.size();
+       forceIndex++) {
     const NodalForce &force = nodalForces[forceIndex];
 
     if (force.index > nodes.size() - 1) {
@@ -94,8 +94,7 @@ void BeamSimulator::setNodalForces(const std::vector<NodalForce> &nodalForces) {
     }
 
     this->nodalForces[forceIndex] =
-        fea::Force(static_cast<unsigned int>(force.index),
-                   static_cast<unsigned int>(force.dof), force.magnitude);
+        fea::Force(force.index, force.dof, force.magnitude);
   }
 }
 

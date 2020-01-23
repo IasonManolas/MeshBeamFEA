@@ -67,7 +67,7 @@ void Drawer::markPositions(const string drawingDataID,
                            Viewer &viewer) const {
   assert(!viewer.hasDrawingData(drawingDataID));
   VCGTriMesh squares;
-  for (int sphereIndex = 0; sphereIndex < spherePositions.rows();
+  for (gsl::index sphereIndex = 0; sphereIndex < spherePositions.rows();
        sphereIndex++) {
     Eigen::Vector3d position = spherePositions.row(sphereIndex);
     VCGTriMesh square;
@@ -103,11 +103,10 @@ void Drawer::drawWorldAxis(const std::string &drawingDataID, Viewer &viewer,
   viewer.addDrawingData(drawingDataID, axisDrawingData);
 }
 
-void Drawer::setBeamColors(const string &drawingDataID, const int &colorIndex,
-                           Viewer &viewer) const {
+void Drawer::setBeamColors(const string &drawingDataID,
+                           const gsl::index &colorIndex, Viewer &viewer) const {
   assert(!beamVerticesColors.empty());
-  viewer.setColors(drawingDataID,
-                   beamVerticesColors[static_cast<size_t>(colorIndex)]);
+  viewer.setColors(drawingDataID, beamVerticesColors[colorIndex]);
 }
 
 void Drawer::drawEdges(const string &drawingDataID,
@@ -128,20 +127,20 @@ void Drawer::computeBeamColors(const Eigen::MatrixX3d &edgeVertices,
   beamVerticesColors.resize(numDoF);
   const int numberOfEdges = edges.rows();
   const int numberOfVerticesPerBeam = beamMeshVertices.rows() / numberOfEdges;
-  for (int forceComponentIndex = NodalForceComponent::Fx;
+  for (gsl::index forceComponentIndex = NodalForceComponent::Fx;
        forceComponentIndex < numDoF; forceComponentIndex++) {
     beamVerticesColors[forceComponentIndex].resize(beamMeshVertices.rows(), 3);
     for (int edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
-      const int vertexIndex0 = edges(edgeIndex, 0);
-      const int vertexIndex1 = edges(edgeIndex, 1);
+      const gsl::index vertexIndex0 = edges(edgeIndex, 0);
+      const gsl::index vertexIndex1 = edges(edgeIndex, 1);
       const Eigen::Vector3d &p0 = edgeVertices.row(vertexIndex0);
       const Eigen::Vector3d &p1 = edgeVertices.row(vertexIndex1);
       const Eigen::Vector3d &edgeV0Color =
           edgeColors[forceComponentIndex].row(2 * edgeIndex);
       const Eigen::Vector3d &edgeV1Color =
           edgeColors[forceComponentIndex].row(2 * edgeIndex + 1);
-      for (int beamVertexIndex = 0; beamVertexIndex < numberOfVerticesPerBeam;
-           beamVertexIndex++) {
+      for (gsl::index beamVertexIndex = 0;
+           beamVertexIndex < numberOfVerticesPerBeam; beamVertexIndex++) {
         const Eigen::Vector3d &p = beamMeshVertices.row(
             numberOfVerticesPerBeam * edgeIndex + beamVertexIndex);
         const bool isOnTheSideOfP0 = Eigen::Vector3d(p - p0).squaredNorm() <

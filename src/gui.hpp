@@ -11,7 +11,7 @@ class GUI : public Colorbar {
     bool shouldDrawEdgeMesh{false};
     struct Simulation {
       struct Force {
-        int vertexIndex{0};
+        gsl::index vertexIndex{0};
         int dof{0};
         float magnitude{1};
       } force;

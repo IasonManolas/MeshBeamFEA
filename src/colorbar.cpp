@@ -16,11 +16,9 @@ void Colorbar::init_colormaps(std::vector<Eigen::VectorXd> vectorOfValues,
 
 Colorbar::Colorbar() {}
 
-// Draws a combo box for selecting the colormap
-int Colorbar::draw_colormap_combo() const {}
-
 // Draws the actual colorbar with min/max values
-void Colorbar::draw_colorbar(const int colormapIndex, float xmin, float xmax,
+void Colorbar::draw_colorbar(const gsl::index colormapIndex, float xmin,
+                             float xmax,
                              const Eigen::Vector4f &background_color) const {
   ImVec4 color(0, 0, 0, 1);
   auto rgb = background_color;
@@ -52,7 +50,7 @@ void Colorbar::texture_from_colormap(const Eigen::MatrixX3d &rgb, GLuint &id) {
   unsigned char *imagePtr;
   if (isVertical) {
     imageWidth = 1;
-    imageHeight = static_cast<int>(rgb.rows());
+    imageHeight = rgb.rows();
 
     Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic,
                   Eigen::RowMajor>
@@ -67,7 +65,7 @@ void Colorbar::texture_from_colormap(const Eigen::MatrixX3d &rgb, GLuint &id) {
     memcpy(imagePtr, cmap.data(), imageDataSize);
   } else {
     auto rgbT = rgb.transpose();
-    imageWidth = static_cast<int>(rgbT.cols());
+    imageWidth = rgbT.cols();
     imageHeight = 1;
 
     Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic,

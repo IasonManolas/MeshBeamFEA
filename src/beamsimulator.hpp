@@ -3,6 +3,7 @@
 
 #include "beam.hpp"
 #include "mesh.hpp"
+#include <gsl/gsl>
 #include <threed_beam_fea.h>
 #include <vector>
 
@@ -39,8 +40,8 @@ struct BeamSimulationProperties {
 };
 
 struct NodalForce {
-  size_t index;
-  int dof;
+  gsl::index index;
+  gsl::index dof;
   double magnitude;
 };
 
