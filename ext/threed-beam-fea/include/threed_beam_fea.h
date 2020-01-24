@@ -76,6 +76,11 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> ForceVector;
 typedef Eigen::SparseMatrix<double> SparseMat;
 
 /**
+ * A 3x3 rotation matrix.
+ */
+using RotationMatrix = Eigen::Matrix<double, 3, 3, Eigen::RowMajor>;
+
+/**
  * @brief Calculates the distance between 2 nodes.
  * @details Calculates the original Euclidean distance between 2 nodes in the
  * x-y plane.
@@ -143,7 +148,7 @@ public:
    * @param[in] ny `Eigen::Matrix3d`. Unit normal vector in global space
    * parallel to the beam element's local y-direction.
    */
-  void calcAelem(const Eigen::Vector3d &nx, const Eigen::Vector3d &nz);
+  void calcAelem(const RotationMatrix &r);
 
   /**
    * @brief Returns the currently stored elemental stiffness matrix.
