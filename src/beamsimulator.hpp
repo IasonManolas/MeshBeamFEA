@@ -27,15 +27,18 @@ struct BeamSimulationProperties {
   BeamSimulationProperties(const BeamDimensions &dimensions,
                            const BeamMaterial &material) {
     crossArea = (dimensions.b * dimensions.h);
-    I2 = (dimensions.b * std::pow(dimensions.h, 3) / 12);
-    I3 = (dimensions.h * std::pow(dimensions.b, 3) / 12);
+    I2 = dimensions.b * std::pow(dimensions.h, 3) / 12;
+    I3 = dimensions.h * std::pow(dimensions.b, 3) / 12;
     polarInertia = (I2 + I3);
-    G = (material.youngsModulusGPascal * std::pow(10, 9) /
-         (2 * (1 + material.poissonsRatio)));
-    EA = (material.youngsModulusGPascal * std::pow(10, 9) * crossArea);
-    EIz = (material.youngsModulusGPascal * std::pow(10, 9) * I3);
-    EIy = (material.youngsModulusGPascal * std::pow(10, 9) * I2);
-    GJ = (G * polarInertia);
+
+    const float youngsModulusPascal =
+        material.youngsModulusGPascal * std::pow(10, 9);
+
+    G = youngsModulusPascal / (2 * (1 + material.poissonsRatio));
+    EA = youngsModulusPascal * crossArea;
+    EIy = youngsModulusPascal * I3;
+    EIz = youngsModulusPascal * I2;
+    GJ = G * polarInertia;
   }
 };
 
