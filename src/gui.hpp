@@ -21,6 +21,7 @@ class GUI : public Colorbar {
     struct ViewingOptions {
       igl::ColorMapType chosenColormapType{igl::COLOR_MAP_TYPE_INFERNO};
       NodalForceComponent chosenForceComponent{Fx};
+      bool shouldDrawWorldAxis{false};
     } viewingOptions;
   } entries;
 
@@ -40,6 +41,8 @@ private:
   std::vector<std::pair<double, double>> minMaxForcesPerForceComponent;
 
   void createMenu();
+  void drawWorldAxis();
+  void clearViewer();
   bool loadEdgeMesh();
   void setSimulation();
   void drawEdgeMesh();

@@ -35,17 +35,14 @@ void GUI::createMenu() {
     // Workspace tab
     if (ImGui::CollapsingHeader("Workspace", ImGuiTreeNodeFlags_None)) {
       if (ImGui::Button("Clear", ImVec2(-1, 0))) {
-        viewer.clearDrawingData();
-        entries.simulation.nodalForces.clear();
+        clearViewer();
       }
     }
 
     // Edge mesh tab
     if (ImGui::CollapsingHeader("Edge Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::Button("Load##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
-        if (viewer.hasDrawingData(drawingDataIDs.edgeMeshID)) {
-          viewer.deleteDrawingData(drawingDataIDs.edgeMeshID);
-        }
+        clearViewer();
         if (loadEdgeMesh()) {
           entries.shouldDrawEdgeMesh = true;
           drawEdgeMesh();
@@ -92,15 +89,12 @@ void GUI::createMenu() {
         viewer.setShouldInvertNormals(drawingDataIDs.displacedEdgeMeshID,
                                       shouldInvertNormals);
       }
-      // Draw axis
-      static bool shouldDrawAxis = false;
-      if (ImGui::Checkbox("Show axis", &shouldDrawAxis)) {
-        if (viewer.hasDrawingData(drawingDataIDs.worldAxisID)) {
-          viewer.setDrawingDataVisibility(drawingDataIDs.worldAxisID,
-                                          shouldDrawAxis);
+      if (ImGui::Checkbox("Show axis",
+                          &entries.viewingOptions.shouldDrawWorldAxis)) {
+        if (entries.viewingOptions.shouldDrawWorldAxis) {
+          drawWorldAxis();
         } else {
-          drawer.drawWorldAxis(drawingDataIDs.worldAxisID, viewer,
-                               shouldDrawAxis);
+          viewer.setDrawingDataVisibility(drawingDataIDs.worldAxisID, false);
         }
       }
       // Choose force component
@@ -205,6 +199,22 @@ void GUI::createMenu() {
     }
   };
   viewer.addPlugin("Main menu", pMenu);
+}
+
+void GUI::drawWorldAxis() {
+  if (viewer.hasDrawingData(drawingDataIDs.worldAxisID)) {
+    viewer.setDrawingDataVisibility(drawingDataIDs.worldAxisID, true);
+  } else {
+    drawer.drawWorldAxis(drawingDataIDs.worldAxisID, viewer, true);
+  }
+}
+
+void GUI::clearViewer() {
+  viewer.clearDrawingData();
+  entries.simulation.nodalForces.clear();
+  if (entries.viewingOptions.shouldDrawWorldAxis) {
+    drawWorldAxis();
+  }
 }
 
 bool GUI::loadEdgeMesh() {
