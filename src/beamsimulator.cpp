@@ -1,5 +1,6 @@
 #include "beamsimulator.hpp"
 #include <Eigen/Core>
+#include <filesystem>
 #include <gsl/gsl>
 #include <iostream>
 #include <vcg/complex/algorithms/create/platonic.h>
@@ -19,6 +20,16 @@ void BeamSimulator::setSimulation(
   setElements(elements, elementNormals, beamDimensions, beamMaterial);
   setFixedNodes(fixedNodes);
   setNodalForces(nodalForces);
+}
+
+void BeamSimulator::setResultsNodalDisplacementCSVFilepath(
+    const string &outputFilepath) {
+  this->nodalDisplacementsOutputFilepath = outputFilepath;
+}
+
+void BeamSimulator::setResultsElementalForcesCSVFilepath(
+    const string &outputFilepath) {
+  this->elementalForcesOutputFilepath = outputFilepath;
 }
 
 void BeamSimulator::setNodes(const Eigen::MatrixX3d &nodes) {
@@ -121,13 +132,15 @@ void BeamSimulator::reset() {
 
 fea::Summary BeamSimulator::executeSimulation() {
   fea::Job job(nodes, elements);
-  printInfo(job);
+  //  printInfo(job);
 
   // create the default options
   fea::Options opts;
-  if (!nodalForcesOutputFilepath.empty()) {
-    opts.save_nodal_forces = true;
-    opts.nodal_forces_filename = nodalForcesOutputFilepath;
+  const bool outputDisplacements = true;
+  const bool outputForces = true;
+  if (!elementalForcesOutputFilepath.empty()) {
+    opts.save_elemental_forces = true;
+    opts.elemental_forces_filename = elementalForcesOutputFilepath;
   }
   if (!nodalDisplacementsOutputFilepath.empty()) {
     opts.save_nodal_displacements = true;
@@ -147,7 +160,7 @@ fea::Summary BeamSimulator::executeSimulation() {
       fea::solve(job, boundaryConditions, nodalForces, ties, equations, opts);
 
   // print a report of the analysis
-  std::cout << summary.FullReport() << std::endl;
+  //  std::cout << summary.FullReport() << std::endl;
   results = summary;
 
   return summary;

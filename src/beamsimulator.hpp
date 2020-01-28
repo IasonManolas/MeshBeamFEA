@@ -55,8 +55,8 @@ private:
   std::vector<fea::BC> boundaryConditions;
   std::vector<fea::Force> nodalForces;
   std::vector<Eigen::Vector3d> nodeNormals;
-  std::string nodalDisplacementsOutputFilepath;
-  std::string nodalForcesOutputFilepath;
+  std::string nodalDisplacementsOutputFilepath{"nodal_displacement.csv"};
+  std::string elementalForcesOutputFilepath{"elemental_forces.csv"};
   fea::Summary results;
 
   static void printInfo(const fea::Job &job);
@@ -83,6 +83,8 @@ public:
                      const std::vector<NodalForce> &nodalForces,
                      const std::vector<BeamDimensions> &beamDimensions,
                      const std::vector<BeamMaterial> &beamMaterial);
+  void setResultsNodalDisplacementCSVFilepath(const std::string &outputPath);
+  void setResultsElementalForcesCSVFilepath(const std::string &outputPath);
 };
 
 #endif // BEAMSIMULATOR_HPP
