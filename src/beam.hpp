@@ -1,5 +1,6 @@
 #ifndef BEAM_HPP
 #define BEAM_HPP
+#include <assert.h>
 #include <cmath>
 #include <iostream>
 
@@ -17,6 +18,7 @@ struct BeamMaterial {
   BeamMaterial(const float &poissonsRatio, const float &youngsModulusGPascal)
       : poissonsRatio(poissonsRatio),
         youngsModulusGPascal(youngsModulusGPascal) {
+    assert(poissonsRatio <= 0.5 && poissonsRatio >= -1);
     std::cout << "non-default constructor was called" << std::endl;
   }
   BeamMaterial() : poissonsRatio(0.3), youngsModulusGPascal(210) {
