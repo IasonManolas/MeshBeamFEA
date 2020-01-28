@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include <filesystem>
 #include <igl/file_dialog_open.h>
 #include <igl/list_to_matrix.h>
 #include <igl/matrix_to_list.h>
@@ -219,19 +220,20 @@ void GUI::clearViewer() {
 
 bool GUI::loadEdgeMesh() {
   const std::string meshFilenameString = igl::file_dialog_open();
-  size_t last_dot = meshFilenameString.rfind('.');
-  if (last_dot == std::string::npos) {
+  const std::filesystem::path meshFilenamePath(meshFilenameString);
+  if (!meshFilenamePath.has_extension()) {
     std::cerr << "Error: No file extension found in " << meshFilenameString
               << std::endl;
     return false;
   }
 
-  std::string extension = meshFilenameString.substr(last_dot + 1);
+  const std::string extension = meshFilenamePath.extension().c_str();
 
-  if (extension != "ply" && extension != "PLY") {
+  if (extension != ".ply" && extension != ".PLY") {
     std::cerr << "Error: Only ply file types are supported" << std::endl;
     return false;
   }
+  entries.plyFilename = meshFilenameString;
   return edgeMesh.loadFromPly(meshFilenameString);
 }
 
@@ -249,6 +251,19 @@ void GUI::setSimulation() {
   simulator.setSimulation(nodes, elements, elementNormals, fixedNodes,
                           entries.simulation.nodalForces, beamDimensions,
                           beamMaterial);
+
+  const std::filesystem::path resultsFolderPath =
+      std::filesystem::current_path().append("Results");
+  std::cout << resultsFolderPath.string() << std::endl;
+  std::filesystem::create_directory(resultsFolderPath);
+  simulator.setResultsNodalDisplacementCSVFilepath(
+      std::filesystem::path(resultsFolderPath)
+          .append("nodal_displacements.csv")
+          .string());
+  simulator.setResultsElementalForcesCSVFilepath(
+      std::filesystem::path(resultsFolderPath)
+          .append("elemental_displacements.csv")
+          .string());
 }
 
 void GUI::drawEdgeMesh() {

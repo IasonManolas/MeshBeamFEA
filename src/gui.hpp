@@ -9,6 +9,7 @@
 class GUI : public Colorbar {
   struct Entries {
     bool shouldDrawEdgeMesh{false};
+    std::string plyFilename;
     struct Simulation {
       struct Force {
         gsl::index vertexIndex{0};
