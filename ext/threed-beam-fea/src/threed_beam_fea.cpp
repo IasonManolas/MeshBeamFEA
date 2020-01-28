@@ -388,15 +388,16 @@ Summary solve(const Job &job, const std::vector<BC> &BCs,
               << " ms.\nNow preprocessing factorization..." << std::endl;
 
   unsigned int numberOfDoF = DOF::NUM_DOFS * job.nodes.size();
-  Eigen::MatrixXd KgNoBCDense(Kg.block(0, 0, numberOfDoF, numberOfDoF));
-  std::ofstream kgNoBCFile("KgNoBC.csv");
-  if (kgNoBCFile.is_open()) {
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
-                                           Eigen::DontAlignCols, ", ", "\n");
-    kgNoBCFile << KgNoBCDense.format(CSVFormat) << '\n';
-    kgNoBCFile.close();
-  }
-  std::cout << KgNoBCDense << std::endl;
+  //  Eigen::MatrixXd KgNoBCDense(Kg.block(0, 0, numberOfDoF, numberOfDoF));
+  //  std::ofstream kgNoBCFile("KgNoBC.csv");
+  //  if (kgNoBCFile.is_open()) {
+  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+  //                                           Eigen::DontAlignCols, ", ",
+  //                                           "\n");
+  //    kgNoBCFile << KgNoBCDense.format(CSVFormat) << '\n';
+  //    kgNoBCFile.close();
+  //  }
+  //  std::cout << KgNoBCDense << std::endl;
 
   // load prescribed boundary conditions into stiffness matrix and force vector
   loadBCs(Kg, force_vec, BCs, job.nodes.size());
@@ -409,28 +410,30 @@ Summary solve(const Job &job, const std::vector<BC> &BCs,
   if (forces.size() > 0) {
     loadForces(force_vec, forces);
   }
-  Eigen::MatrixXd KgDense(Kg);
-  std::cout << KgDense << std::endl;
-  Eigen::VectorXd forcesVectorDense(force_vec);
-  std::cout << forcesVectorDense << std::endl;
+  //  Eigen::MatrixXd KgDense(Kg);
+  //  std::cout << KgDense << std::endl;
+  //  Eigen::VectorXd forcesVectorDense(force_vec);
+  //  std::cout << forcesVectorDense << std::endl;
 
   // compress global stiffness matrix since all non-zero values have been added.
   Kg.prune(1.e-14);
   Kg.makeCompressed();
-  std::ofstream kgFile("Kg.csv");
-  if (kgFile.is_open()) {
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
-                                           Eigen::DontAlignCols, ", ", "\n");
-    kgFile << KgDense.format(CSVFormat) << '\n';
-    kgFile.close();
-  }
-  std::ofstream forcesFile("forces.csv");
-  if (forcesFile.is_open()) {
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
-                                           Eigen::DontAlignCols, ", ", "\n");
-    forcesFile << forcesVectorDense.format(CSVFormat) << '\n';
-    forcesFile.close();
-  }
+  //  std::ofstream kgFile("Kg.csv");
+  //  if (kgFile.is_open()) {
+  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+  //                                           Eigen::DontAlignCols, ", ",
+  //                                           "\n");
+  //    kgFile << KgDense.format(CSVFormat) << '\n';
+  //    kgFile.close();
+  //  }
+  //  std::ofstream forcesFile("forces.csv");
+  //  if (forcesFile.is_open()) {
+  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+  //                                           Eigen::DontAlignCols, ", ",
+  //                                           "\n");
+  //    forcesFile << forcesVectorDense.format(CSVFormat) << '\n';
+  //    forcesFile.close();
+  //  }
 
   // initialize solver based on whether MKL should be used
 #ifdef EIGEN_USE_MKL_ALL
@@ -547,6 +550,8 @@ Summary solve(const Job &job, const std::vector<BC> &BCs,
   CSVParser csv;
   start_time = std::chrono::high_resolution_clock::now();
   if (options.save_nodal_displacements) {
+    std::cout << "Writing to:" + options.nodal_displacements_filename
+              << std::endl;
     csv.write(options.nodal_displacements_filename, disp_vec,
               options.csv_precision, options.csv_delimiter);
   }
@@ -623,6 +628,13 @@ Summary solve(const Job &job, const std::vector<BC> &BCs,
           +elemForces(dofIndex);
     }
   }
+
+  if (options.save_elemental_forces) {
+    std::cout << "Writing to:" + options.elemental_forces_filename << std::endl;
+    csv.write(options.elemental_forces_filename, summary.element_forces,
+              options.csv_precision, options.csv_delimiter);
+  }
+
   return summary;
 };
 

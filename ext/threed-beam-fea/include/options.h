@@ -29,104 +29,124 @@
 #include <string>
 
 namespace fea {
-    /**
-     * @brief Provides a method for customizing the finite element analysis.
-     */
-    struct Options {
-        /**
-         * @brief Default constructor
-         * @details This tries to set up reasonable defaults for analysis. It is
-         * recommended that the user read and overwrite the defaults based on the information
-         * desired from the analysis.
-         */
-        Options() {
-            epsilon = 1e-14;
+/**
+ * @brief Provides a method for customizing the finite element analysis.
+ */
+struct Options {
+  /**
+   * @brief Default constructor
+   * @details This tries to set up reasonable defaults for analysis. It is
+   * recommended that the user read and overwrite the defaults based on the
+   * information desired from the analysis.
+   */
+  Options() {
+    epsilon = 1e-14;
 
-            csv_precision = 14;
-            csv_delimiter = ",";
+    csv_precision = 14;
+    csv_delimiter = ",";
 
-            save_nodal_displacements = false;
-            save_nodal_forces = false;
-            save_tie_forces = false;
-            verbose = false;
-            save_report = false;
+    save_nodal_displacements = false;
+    save_nodal_forces = false;
+    save_tie_forces = false;
+    verbose = false;
+    save_report = false;
 
-            nodal_displacements_filename = "nodal_displacements.csv";
-            nodal_forces_filename = "nodal_forces.csv";
-            tie_forces_filename = "tie_forces.csv";
-            report_filename = "report.txt";
-        }
+    nodal_displacements_filename = "nodal_displacements.csv";
+    nodal_forces_filename = "nodal_forces.csv";
+    tie_forces_filename = "tie_forces.csv";
+    report_filename = "report.txt";
+  }
 
-        /**
-         * Values of forces and nodal displacements which have a magnitude less than `epsilon` will be rounded to 0.0.
-         * Default = `1e-14`. This is a simple way to deal with machine precision when doing calculations.
-         */
-        double epsilon;
+  /**
+   * Values of forces and nodal displacements which have a magnitude less than
+   * `epsilon` will be rounded to 0.0. Default = `1e-14`. This is a simple way
+   * to deal with machine precision when doing calculations.
+   */
+  double epsilon;
 
-        /**
-         * Number of decimal places to use when saving nodal forces and displacements if either
-         * `save_nodal_displacements` or `save_nodal_forces` is set to `true`. Default = 14.
-         */
-        unsigned int csv_precision;
+  /**
+   * Number of decimal places to use when saving nodal forces and displacements
+   * if either `save_nodal_displacements` or `save_nodal_forces` is set to
+   * `true`. Default = 14.
+   */
+  unsigned int csv_precision;
 
-        /**
-         * Delimiter to use when saving nodal forces and displacements if either
-         * `save_nodal_displacements` or `save_nodal_forces` is set to `true`. Default = ",".
-         */
-        std::string csv_delimiter;
+  /**
+   * Delimiter to use when saving nodal forces and displacements if either
+   * `save_nodal_displacements` or `save_nodal_forces` is set to `true`. Default
+   * = ",".
+   */
+  std::string csv_delimiter;
 
-        /**
-         * Specifies if the nodal displacements should be saved to a file. Default = `false`.
-         * If `true` the nodal displacements will be saved to the file indicated by `nodal_displacements_filename`.
-         */
-        bool save_nodal_displacements;
+  /**
+   * Specifies if the nodal displacements should be saved to a file. Default =
+   * `false`. If `true` the nodal displacements will be saved to the file
+   * indicated by `nodal_displacements_filename`.
+   */
+  bool save_nodal_displacements;
 
-        /**
-         * Specifies if the nodal forces should be saved to a file. Default = `false`.
-         * If `true` the nodal forces will be saved to the file indicated by `nodal_forces_filename`.
-         */
-        bool save_nodal_forces;
+  /**
+   * Specifies if the nodal forces should be saved to a file. Default = `false`.
+   * If `true` the nodal forces will be saved to the file indicated by
+   * `nodal_forces_filename`.
+   */
+  bool save_nodal_forces;
 
-        /**
-         * Specifies if the forces associated with tie elements should be saved to a file. Default = `false`.
-         * If `true` the tie forces will be saved to the file indicated by `tie_forces_filename`.
-         */
-        bool save_tie_forces;
+  /**
+   * Specifies if the elemental forces should be saved to a file. Default =
+   * `false`. If `true` the elemental forces will be saved to the file indicated
+   * by `elemental_forces_filename`.
+   */
+  bool save_elemental_forces;
 
-        /**
-         * Specifies if progress of the analysis should be written to std::cout. Default = `false`.
-         * If `true` information on current step and time taken per step will be reported.
-         */
-        bool verbose;
+  /**
+   * Specifies if the forces associated with tie elements should be saved to a
+   * file. Default = `false`. If `true` the tie forces will be saved to the file
+   * indicated by `tie_forces_filename`.
+   */
+  bool save_tie_forces;
 
-        /**
-         * Specifies if a text file should be written detailing information on the analysis. Default = `false`.
-         * If `true` the a report will be saved to the file indicated by `report_filename`.
-         */
-        bool save_report;
+  /**
+   * Specifies if progress of the analysis should be written to std::cout.
+   * Default = `false`. If `true` information on current step and time taken per
+   * step will be reported.
+   */
+  bool verbose;
 
-        /**
-         * File name to save the nodal displacements to when `save_nodal_displacements == true`.
-         */
-        std::string nodal_displacements_filename;
+  /**
+   * Specifies if a text file should be written detailing information on the
+   * analysis. Default = `false`. If `true` the a report will be saved to the
+   * file indicated by `report_filename`.
+   */
+  bool save_report;
 
-        /**
-         * File name to save the nodal forces to when `save_nodal_forces == true`.
-         */
-        std::string nodal_forces_filename;
+  /**
+   * File name to save the nodal displacements to when `save_nodal_displacements
+   * == true`.
+   */
+  std::string nodal_displacements_filename;
 
-        /**
-         * File name to save the nodal forces to when `save_tie_forces == true`.
-         */
-        std::string tie_forces_filename;
+  /**
+   * File name to save the nodal forces to when `save_nodal_forces == true`.
+   */
+  std::string nodal_forces_filename;
 
-        /**
-         * File name to save the nodal forces to when `save_report == true`.
-         */
-        std::string report_filename;
+  /**
+   * File name to save the nodal forces to when `save_nodal_forces == true`.
+   */
+  std::string elemental_forces_filename;
 
-    };
+  /**
+   * File name to save the nodal forces to when `save_tie_forces == true`.
+   */
+  std::string tie_forces_filename;
+
+  /**
+   * File name to save the nodal forces to when `save_report == true`.
+   */
+  std::string report_filename;
+};
 
 } // namespace fea
 
-#endif //THREEDBEAMFEA_OPTIONS_H
+#endif // THREEDBEAMFEA_OPTIONS_H
