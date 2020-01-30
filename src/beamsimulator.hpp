@@ -7,11 +7,6 @@
 #include <threed_beam_fea.h>
 #include <vector>
 
-struct SimulationOptions {
-  std::vector<int> fixedVertices;
-  std::vector<std::vector<int>> nodalForces;
-};
-
 struct BeamSimulationProperties {
   float crossArea;
   float I2;

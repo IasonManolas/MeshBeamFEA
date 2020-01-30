@@ -132,7 +132,7 @@ void BeamSimulator::reset() {
 
 fea::Summary BeamSimulator::executeSimulation() {
   fea::Job job(nodes, elements);
-  //  printInfo(job);
+  printInfo(job);
 
   // create the default options
   fea::Options opts;
