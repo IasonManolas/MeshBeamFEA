@@ -3,6 +3,8 @@
 
 #include "beam.hpp"
 #include <Eigen/Dense>
+#include <gsl/gsl_util>
+#include <igl/matrix_to_list.h>
 #include <vcg/complex/complex.h>
 #include <wrap/io_trimesh/import.h>
 #include <wrap/nanoply/include/nanoplyWrapper.hpp>
@@ -165,6 +167,8 @@ public:
       bb.max = {edgeVector.norm(), h / 2, b / 2};
       bb.min = {0, -h / 2, -b / 2};
       vcg::tri::Box(beam, bb);
+      std::cout << "b=" + std::to_string(b) + " h=" + std::to_string(h)
+                << std::endl;
 
       vcg::Matrix44<double> R;
       R.SetIdentity();
@@ -176,9 +180,9 @@ public:
       R.SetColumn(2, {localZ.x(), localZ.y(), localZ.z(), 0});
       vcg::Matrix44<double> T;
       T.SetTranslate({p0.x(), p0.y(), p0.z()});
-      //      //      // TODO: It would be faster if I called the UpdatePosition
-      //      //      function once
-      //      //      // for all vertices of the beam mesh
+      // TODO: It would be faster if I called the UpdatePosition
+      // function once
+      // for all vertices of the beam mesh
       vcg::tri::UpdatePosition<VCGTriMesh>::Matrix(beam, T * R);
       vcg::tri::Append<VCGTriMesh, VCGTriMesh>::Mesh(beamMesh, beam);
     }
@@ -191,223 +195,5 @@ inline std::string convertToLowercase(const std::string &s) {
                  [](unsigned char c) { return std::tolower(c); });
   return lowercaseString;
 }
-class VCGEdgeMeshEdgeType;
-class VCGEdgeMeshVertexType;
-
-struct VCGEdgeMeshUsedTypes
-    : public vcg::UsedTypes<vcg::Use<VCGEdgeMeshVertexType>::AsVertexType,
-                            vcg::Use<VCGEdgeMeshEdgeType>::AsEdgeType> {};
-
-class VCGEdgeMeshVertexType
-    : public vcg::Vertex<VCGEdgeMeshUsedTypes, vcg::vertex::Coord3d,
-                         vcg::vertex::Normal3d, vcg::vertex::BitFlags,
-                         vcg::vertex::VEAdj> {};
-class VCGEdgeMeshEdgeType
-    : public vcg::Edge<VCGEdgeMeshUsedTypes, vcg::edge::VertexRef,
-                       vcg::edge::BitFlags, vcg::edge::EEAdj,
-                       vcg::edge::VEAdj> {};
-
-class VCGEdgeMesh : public vcg::tri::TriMesh<std::vector<VCGEdgeMeshVertexType>,
-                                             std::vector<VCGEdgeMeshEdgeType>> {
-  const std::string plyPropertyEdgeNormalID{"edge_normal"};
-  const std::string plyPropertyBeamDimensionsID{"beam_dimensions"};
-  const std::string plyPropertyBeamMaterialID{"beam_material"};
-  VCGEdgeMesh::PerEdgeAttributeHandle<vcg::Point3d> handleEdgeNormals;
-  VCGEdgeMesh::PerEdgeAttributeHandle<BeamDimensions> handleBeamDimensions;
-  VCGEdgeMesh::PerEdgeAttributeHandle<BeamMaterial> handleBeamMaterial;
-
-  Eigen::MatrixX2i eigenEdges;
-  Eigen::MatrixX3d eigenVertices;
-  Eigen::MatrixX3d eigenEdgeNormals;
-  void getEdges(Eigen::MatrixX2i &edges) {
-    edges.resize(EN(), 2);
-    for (int edgeIndex = 0; edgeIndex < EN(); edgeIndex++) {
-      const VCGEdgeMesh::EdgeType &edge = this->edge[edgeIndex];
-      const size_t nodeIndex0 = vcg::tri::Index<VCGEdgeMesh>(*this, edge.cV(0));
-      const size_t nodeIndex1 = vcg::tri::Index<VCGEdgeMesh>(*this, edge.cV(1));
-      edges.row(edgeIndex) = Eigen::Vector2i(nodeIndex0, nodeIndex1);
-    }
-  }
-
-  void getVertices(Eigen::MatrixX3d &vertices) {
-    vertices.resize(VN(), 3);
-    for (int vertexIndex = 0; vertexIndex < VN(); vertexIndex++) {
-      VCGEdgeMesh::CoordType vertexCoordinates =
-          vert[static_cast<size_t>(vertexIndex)].cP();
-      vertices.row(vertexIndex) = convertToEigenVector(vertexCoordinates);
-    }
-  }
-
-public:
-  VCGEdgeMesh() {
-    handleEdgeNormals =
-        vcg::tri::Allocator<VCGEdgeMesh>::AddPerEdgeAttribute<vcg::Point3d>(
-            *this, plyPropertyEdgeNormalID);
-    handleBeamDimensions =
-        vcg::tri::Allocator<VCGEdgeMesh>::AddPerEdgeAttribute<BeamDimensions>(
-            *this, plyPropertyBeamDimensionsID);
-    handleBeamMaterial =
-        vcg::tri::Allocator<VCGEdgeMesh>::AddPerEdgeAttribute<BeamMaterial>(
-            *this, plyPropertyBeamMaterialID);
-  }
-
-  static Eigen::Vector3d convertToEigenVector(const VCGEdgeMesh::CoordType &p) {
-    return Eigen::Vector3d(p.X(), p.Y(), p.Z());
-  }
-  void getEdges(Eigen::MatrixX3d &edgeStartingPoints,
-                Eigen::MatrixX3d &edgeEndingPoints) const {
-    edgeStartingPoints.resize(EN(), 3);
-    edgeEndingPoints.resize(EN(), 3);
-    for (int edgeIndex = 0; edgeIndex < EN(); edgeIndex++) {
-      const VCGEdgeMesh::EdgeType &edge = this->edge[edgeIndex];
-      edgeStartingPoints.row(edgeIndex) = (convertToEigenVector(edge.cP(0)));
-      edgeEndingPoints.row(edgeIndex) = (convertToEigenVector(edge.cP(1)));
-    }
-  }
-
-  void getBeamMesh(const float &beamThickness, VCGTriMesh &beamMesh) const {
-    for (size_t edgeIndex = 0; edgeIndex < static_cast<size_t>(this->EN());
-         edgeIndex++) {
-      const VCGEdgeMesh::EdgeType &edge = this->edge[edgeIndex];
-      const VCGEdgeMesh::CoordType &p0 = edge.cP(0);
-      const VCGEdgeMesh::CoordType &p1 = edge.cP(1);
-      VCGTriMesh beam;
-      vcg::tri::OrientedCylinder(beam, p0, p1, beamThickness, true, 4, 1);
-      vcg::tri::Append<VCGTriMesh, VCGTriMesh>::Mesh(beamMesh, beam);
-    }
-  }
-
-  void getNormals(Eigen::MatrixX3d &normals) const {
-    normals.resize(VN(), 3);
-    for (int vertexIndex = 0; vertexIndex < VN(); vertexIndex++) {
-      VCGEdgeMesh::CoordType vertexNormal =
-          vert[static_cast<size_t>(vertexIndex)].cN();
-      normals.row(vertexIndex) = convertToEigenVector(vertexNormal);
-    }
-  }
-
-  bool loadUsingDefaultLoader(const std::string &plyFilename) {
-    int returnValue = vcg::tri::io::ImporterPLY<VCGEdgeMesh>::Open(
-        *this, plyFilename.c_str());
-    if (returnValue != 0) {
-      std::cerr << "Error: Unable to open " + plyFilename + ". Error Message:"
-                << vcg::tri::io::ImporterPLY<VCGEdgeMesh>::ErrorMsg(returnValue)
-                << std::endl;
-      return false;
-    }
-    return true;
-  }
-  bool hasProperty(const std::vector<nanoply::PlyProperty> &v,
-                   const std::string &propertyName) {
-    return v.end() !=
-           std::find_if(v.begin(), v.end(),
-                        [&](const nanoply::PlyProperty &plyProperty) {
-                          return plyProperty.name == propertyName;
-                        });
-  }
-
-  bool
-  hasPlyEdgeProperty(const std::string &plyFilename,
-                     const std::vector<nanoply::PlyProperty> &edgeProperties,
-                     const std::string &plyEdgePropertyName) {
-    const bool hasEdgeProperty =
-        hasProperty(edgeProperties, plyEdgePropertyName);
-    if (!hasEdgeProperty) {
-      std::cerr << "Ply file " + plyFilename +
-                       " is missing the propertry:" + plyEdgePropertyName
-                << std::endl;
-      return false;
-    }
-    return true;
-  }
-
-  bool plyFileHasAllRequiredFields(const std::string &plyFilename) {
-    const nanoply::Info info(plyFilename);
-    const std::vector<nanoply::PlyElement>::const_iterator edgeElemIt =
-        std::find_if(info.elemVec.begin(), info.elemVec.end(),
-                     [&](const nanoply::PlyElement &plyElem) {
-                       return plyElem.plyElem == nanoply::NNP_EDGE_ELEM;
-                     });
-    if (edgeElemIt == info.elemVec.end()) {
-      std::cerr << "Ply file is missing edge elements." << std::endl;
-      return false;
-    }
-
-    const std::vector<nanoply::PlyProperty> &edgePropertyVector =
-        edgeElemIt->propVec;
-    return hasPlyEdgeProperty(plyFilename, edgePropertyVector,
-                              plyPropertyEdgeNormalID) &&
-           hasPlyEdgeProperty(plyFilename, edgePropertyVector,
-                              plyPropertyBeamDimensionsID) &&
-           hasPlyEdgeProperty(plyFilename, edgePropertyVector,
-                              plyPropertyBeamMaterialID);
-  }
-
-  bool loadUsingNanoply(const std::string &plyFilename) {
-    assert(plyFileHasAllRequiredFields(plyFilename));
-    nanoply::NanoPlyWrapper<VCGEdgeMesh>::CustomAttributeDescriptor
-        customAttrib;
-    customAttrib.GetMeshAttrib(plyFilename);
-    customAttrib.AddEdgeAttribDescriptor<vcg::Point3d, double, 3>(
-        plyPropertyEdgeNormalID, nanoply::NNP_LIST_UINT8_FLOAT64, nullptr);
-    customAttrib.AddEdgeAttribDescriptor<BeamDimensions, float, 2>(
-        plyPropertyBeamDimensionsID, nanoply::NNP_LIST_UINT8_FLOAT32, nullptr);
-    customAttrib.AddEdgeAttribDescriptor<vcg::Point2f, float, 2>(
-        plyPropertyBeamMaterialID, nanoply::NNP_LIST_UINT8_FLOAT32, nullptr);
-    // Load the ply file
-    unsigned int mask = 0;
-    mask |= nanoply::NanoPlyWrapper<VCGEdgeMesh>::IO_VERTCOORD;
-    mask |= nanoply::NanoPlyWrapper<VCGEdgeMesh>::IO_EDGEINDEX;
-    mask |= nanoply::NanoPlyWrapper<VCGEdgeMesh>::IO_EDGEATTRIB;
-    if (nanoply::NanoPlyWrapper<VCGEdgeMesh>::LoadModel(
-            plyFilename.c_str(), *this, mask, customAttrib) != 0) {
-      return false;
-    }
-    return true;
-  }
-
-  bool loadFromPly(const std::string plyFilename) {
-
-    this->Clear();
-    const bool useDefaultImporter = false;
-    if (useDefaultImporter) {
-      if (!loadUsingDefaultLoader(plyFilename)) {
-        return false;
-      }
-
-      eigenEdgeNormals.resize(EN(), 3);
-      for (int i = 0; i < EN(); i++) {
-        eigenEdgeNormals.row(i) = Eigen::Vector3d(0, 1, 0);
-      }
-    } else {
-      if (!loadUsingNanoply(plyFilename)) {
-        std::cerr << "Error: Unable to open " + plyFilename << std::endl;
-        return false;
-      }
-      eigenEdgeNormals.resize(EN(), 3);
-      for (int edgeIndex = 0; edgeIndex < EN(); edgeIndex++) {
-        const vcg::Point3d &edgeNormal = handleEdgeNormals[edgeIndex];
-        Eigen::Vector3d eigenEdgeNormal;
-        edgeNormal.ToEigenVector(eigenEdgeNormal);
-        eigenEdgeNormals.row(edgeIndex) = eigenEdgeNormal;
-      }
-    }
-    getEdges(eigenEdges);
-    getVertices(eigenVertices);
-    std::cout << plyFilename << " was loaded successfuly." << std::endl;
-
-    std::cout << "Mesh has " << EN() << " edges." << std::endl;
-    return true;
-  }
-  Eigen::MatrixX2i getEigenEdges() const { return eigenEdges; }
-  Eigen::MatrixX3d getEigenVertices() const { return eigenVertices; }
-  Eigen::MatrixX3d getEigenEdgeNormals() const { return eigenEdgeNormals; }
-  std::vector<BeamDimensions> getBeamDimensions() const {
-    return handleBeamDimensions._handle->data;
-  }
-  std::vector<BeamMaterial> getBeamMaterial() const {
-    return handleBeamMaterial._handle->data;
-  }
-};
 
 #endif // MESHSTRUCTS_HPP
