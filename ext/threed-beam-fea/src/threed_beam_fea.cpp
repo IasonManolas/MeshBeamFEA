@@ -35,6 +35,8 @@
 
 #include "threed_beam_fea.h"
 
+#define DEBUG
+
 namespace fea {
 
 namespace {
@@ -388,17 +390,17 @@ Summary solve(const Job &job, const std::vector<BC> &BCs,
               << " ms.\nNow preprocessing factorization..." << std::endl;
 
   unsigned int numberOfDoF = DOF::NUM_DOFS * job.nodes.size();
-  //  Eigen::MatrixXd KgNoBCDense(Kg.block(0, 0, numberOfDoF, numberOfDoF));
-  //  std::ofstream kgNoBCFile("KgNoBC.csv");
-  //  if (kgNoBCFile.is_open()) {
-  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
-  //                                           Eigen::DontAlignCols, ", ",
-  //                                           "\n");
-  //    kgNoBCFile << KgNoBCDense.format(CSVFormat) << '\n';
-  //    kgNoBCFile.close();
-  //  }
-  //  std::cout << KgNoBCDense << std::endl;
-
+#ifdef DEBUG
+  Eigen::MatrixXd KgNoBCDense(Kg.block(0, 0, numberOfDoF, numberOfDoF));
+  std::ofstream kgNoBCFile("KgNoBC.csv");
+  if (kgNoBCFile.is_open()) {
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+                                           Eigen::DontAlignCols, ", ", "\n");
+    kgNoBCFile << KgNoBCDense.format(CSVFormat) << '\n';
+    kgNoBCFile.close();
+  }
+//    std::cout << KgNoBCDense << std::endl;
+#endif
   // load prescribed boundary conditions into stiffness matrix and force vector
   loadBCs(Kg, force_vec, BCs, job.nodes.size());
 
@@ -410,31 +412,31 @@ Summary solve(const Job &job, const std::vector<BC> &BCs,
   if (forces.size() > 0) {
     loadForces(force_vec, forces);
   }
-  //  Eigen::MatrixXd KgDense(Kg);
-  //  std::cout << KgDense << std::endl;
-  //  Eigen::VectorXd forcesVectorDense(force_vec);
-  //  std::cout << forcesVectorDense << std::endl;
-
+#ifdef DEBUG
+  Eigen::MatrixXd KgDense(Kg);
+  //    std::cout << KgDense << std::endl;
+  Eigen::VectorXd forcesVectorDense(force_vec);
+//    std::cout << forcesVectorDense << std::endl;
+#endif
   // compress global stiffness matrix since all non-zero values have been added.
   Kg.prune(1.e-14);
   Kg.makeCompressed();
-  //  std::ofstream kgFile("Kg.csv");
-  //  if (kgFile.is_open()) {
-  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
-  //                                           Eigen::DontAlignCols, ", ",
-  //                                           "\n");
-  //    kgFile << KgDense.format(CSVFormat) << '\n';
-  //    kgFile.close();
-  //  }
-  //  std::ofstream forcesFile("forces.csv");
-  //  if (forcesFile.is_open()) {
-  //    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
-  //                                           Eigen::DontAlignCols, ", ",
-  //                                           "\n");
-  //    forcesFile << forcesVectorDense.format(CSVFormat) << '\n';
-  //    forcesFile.close();
-  //  }
-
+#ifdef DEBUG
+  std::ofstream kgFile("Kg.csv");
+  if (kgFile.is_open()) {
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+                                           Eigen::DontAlignCols, ", ", "\n");
+    kgFile << KgDense.format(CSVFormat) << '\n';
+    kgFile.close();
+  }
+  std::ofstream forcesFile("forces.csv");
+  if (forcesFile.is_open()) {
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision,
+                                           Eigen::DontAlignCols, ", ", "\n");
+    forcesFile << forcesVectorDense.format(CSVFormat) << '\n';
+    forcesFile.close();
+  }
+#endif
   // initialize solver based on whether MKL should be used
 #ifdef EIGEN_USE_MKL_ALL
   Eigen::PardisoLU<SparseMat> solver;
@@ -617,14 +619,13 @@ Summary solve(const Job &job, const std::vector<BC> &BCs,
         perElemKlocalAelem[elemIndex] * elemDisps;
     for (int dofIndex = 0; dofIndex < DOF::NUM_DOFS; dofIndex++) {
       summary.element_forces[elemIndex][static_cast<size_t>(dofIndex)] =
-          elemForces(dofIndex);
+          -elemForces(dofIndex);
     }
     // meaning of sign = reference to first node:
     // + = compression for axial, - traction
     for (int dofIndex = DOF::NUM_DOFS; dofIndex < 2 * DOF::NUM_DOFS;
          dofIndex++) {
       summary.element_forces[elemIndex][static_cast<size_t>(dofIndex)] =
-          //-elemForces(dofIndex);
           +elemForces(dofIndex);
     }
   }
