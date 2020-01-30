@@ -1,6 +1,7 @@
 #ifndef DRAWER_HPP
 #define DRAWER_HPP
 
+#include "edgemesh.hpp"
 #include "mesh.hpp"
 #include "viewer.hpp"
 #include <stdexcept>
