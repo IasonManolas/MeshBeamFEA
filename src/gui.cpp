@@ -102,7 +102,7 @@ void GUI::createMenu() {
       static NodalForceComponent force =
           entries.viewingOptions.chosenForceComponent;
       ImGui::Combo("Force visualization", reinterpret_cast<int *>(&force),
-                   "N\0Ty\0Tx\0Mx\0My\0Mz\0");
+                   "N\0Ty\0Tz\0Mx\0My\0Mz\0");
       if (force != entries.viewingOptions.chosenForceComponent) {
         entries.viewingOptions.chosenForceComponent = force;
         if (viewer.hasDrawingData(drawingDataIDs.displacedEdgeMeshID)) {
