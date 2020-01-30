@@ -3,19 +3,12 @@
 #include <filesystem>
 #include <gsl/gsl_util>
 #include <sstream>
+#include "edgemesh.hpp"
 
-void BeamSimulatorTester::launchCantileverTest() {
+
+void BeamSimulatorTester::launchRotationTest(const CantileverBeam&) {
   CantileverBeam cantileverBeam;
-  const std::filesystem::path resultsFolderPath{
-      std::filesystem::current_path().append("Results")};
-  std::filesystem::create_directory(resultsFolderPath);
-  const std::filesystem::path forceResultsPath{
-      std::filesystem::path(resultsFolderPath).append("Forces")};
-  std::filesystem::create_directory(forceResultsPath);
-  const std::filesystem::path displacementResultsPath{
-      std::filesystem::path(resultsFolderPath).append("Displacements")};
-  std::filesystem::create_directory(displacementResultsPath);
-
+createResultFolders();
   const Eigen::Vector3d initialXAxis(cantileverBeam.XAxis);
   const Eigen::Vector3d initialYAxis(cantileverBeam.YAxis);
   Eigen::Vector3d rotationAxis{Eigen::Vector3d::UnitZ()};
@@ -38,6 +31,10 @@ void BeamSimulatorTester::launchCantileverTest() {
       }
     }
   } while (std::next_permutation(rotationAxis.data(), rotationAxis.data() + 3));
+}
+
+void BeamSimulatorTester::launchRotationTest(const std::string& plyFilename,const Eigen::VectorXi& fixedNodes,const std::vector<NodalForces>& nodalForces){
+  createResultFolders();
 }
 
 void BeamSimulatorTester::setSimulation(
@@ -85,12 +82,34 @@ void BeamSimulatorTester::setSimulationResultsCSV(
   beamSimulator.setResultsNodalDisplacementCSVFilepath(
       std::filesystem::path(displacementResultPath)
           .append(nodalDisplacementsFilename)
-          .string());
+        .string());
+}
+
+void BeamSimulatorTester::createResultFolders() const
+{
+  const std::filesystem::path resultsFolderPath{
+      std::filesystem::current_path().append("Results")};
+  std::filesystem::create_directory(resultsFolderPath);
+  const std::filesystem::path forceResultsPath{
+      std::filesystem::path(resultsFolderPath).append("Forces")};
+  std::filesystem::create_directory(forceResultsPath);
+  const std::filesystem::path displacementResultsPath{
+      std::filesystem::path(resultsFolderPath).append("Displacements")};
+  std::filesystem::create_directory(displacementResultsPath);
+  
 }
 
 BeamSimulatorTester::BeamSimulatorTester() {}
 
-void BeamSimulatorTester::launchTests() { launchCantileverTest(); }
+void BeamSimulatorTester::rotationTests(const string &plyFilename)
+{
+  Eigen::VectorXi fixedNodes(1);
+  fixedNodes(0)=0;
+  launchRotationTest(plyFilename,);
+ 
+}
+
+void BeamSimulatorTester::launchTests() { launchRotationTest(); }
 
 Eigen::MatrixX3d BeamSimulatorTester::CantileverBeam::getNodes() const {
   const size_t numberOfNodes = numberOfBeams + 1;
