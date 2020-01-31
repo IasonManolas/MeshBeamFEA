@@ -9,7 +9,10 @@ void Drawer::generateDrawingData(const Eigen::MatrixX3d &vertices,
                                  const Eigen::MatrixX3i &triangleFaces,
                                  ViewerData &drawingData) const {
   drawingData.set_mesh(vertices, triangleFaces);
-  drawingData.compute_normals();
+  // Compute per-face normals
+  Eigen::MatrixX3d N_faces;
+  igl::per_face_normals(vertices, triangleFaces, N_faces);
+  drawingData.set_normals(N_faces);
 }
 
 void Drawer::generateDrawingData(const Eigen::MatrixX3d &vertices,
