@@ -16,11 +16,12 @@ class GUI : public Colorbar {
         int dof{0};
         float magnitude{1};
       } force;
-      std::vector<int> fixedVertices;
+      std::vector<gsl::index> fixedVertices;
+      std::string strFixedVertices;
       std::vector<NodalForce> nodalForces;
     } simulation;
     struct ViewingOptions {
-      igl::ColorMapType chosenColormapType{igl::COLOR_MAP_TYPE_INFERNO};
+      igl::ColorMapType chosenColormapType{igl::COLOR_MAP_TYPE_VIRIDIS};
       NodalForceComponent chosenForceComponent{Fx};
       bool shouldDrawWorldAxis{false};
     } viewingOptions;
@@ -40,11 +41,15 @@ private:
   Viewer viewer;
   VCGEdgeMesh edgeMesh;
   std::vector<std::pair<double, double>> minMaxForcesPerForceComponent;
+  bool shouldDrawEdgeMesh = false;
+  bool shouldDrawFixedVertices = false;
+  bool shouldDrawNodalForces = false;
 
   void createMenu();
   void drawWorldAxis();
   void clearViewer();
   bool loadEdgeMesh();
+  bool loadEdgeMesh(const string &meshFilenameString);
   void setSimulation();
   void drawEdgeMesh();
   void executeSimulation();
@@ -64,6 +69,11 @@ private:
   void drawSimulationResults(
       const std::vector<std::vector<double>> &nodalDisplacements,
       const std::vector<std::vector<double>> &elementForces);
+
+  void drawFixedVertices(const std::vector<gsl::index> &vertices);
+  void updateViewer();
+
+  void drawFixedVertices();
 
 public:
   GUI();

@@ -1,24 +1,12 @@
 #include "gui.hpp"
+#include "utilities.hpp"
+#include <ctype.h>
 #include <filesystem>
 #include <igl/file_dialog_open.h>
 #include <igl/list_to_matrix.h>
 #include <igl/matrix_to_list.h>
-#include <regex>
 
 using Menu = igl::opengl::glfw::imgui::ImGuiMenu;
-
-void parseIntegers(const std::string &str, std::vector<int> &result) {
-  typedef std::regex_iterator<std::string::const_iterator> re_iterator;
-  typedef re_iterator::value_type re_iterated;
-
-  std::regex re("(\\d+)");
-
-  re_iterator rit(str.begin(), str.end(), re);
-  re_iterator rend;
-
-  std::transform(rit, rend, std::back_inserter(result),
-                 [](const re_iterated &it) { return std::stoi(it[1]); });
-}
 
 GUI::GUI() {
   createMenu();
@@ -35,6 +23,81 @@ void GUI::createMenu() {
 
     // Workspace tab
     if (ImGui::CollapsingHeader("Workspace", ImGuiTreeNodeFlags_None)) {
+      if (ImGui::Button("Load", ImVec2((w - p) / 2.f, 0))) {
+        const std::string jsonFilepath = igl::file_dialog_open();
+        if (!Utilities::hasExtension(jsonFilepath, ".json") ||
+            !std::filesystem::exists(jsonFilepath)) {
+          std::cerr << "Scenario could not be loaded because of an invalid "
+                       "file scenario file was chosen."
+                    << std::endl;
+          return;
+        }
+        if (!Utilities::hasExtension(jsonFilepath, ".json")) {
+          std::cerr << "File " + jsonFilepath +
+                           " has not a json extension. Can't load workspace."
+                    << std::endl;
+          return;
+        }
+        // Parse ply filename from json, load and draw the edge mesh
+        std::string plyFilename;
+        ConfigurationFile::getPlyFilename(jsonFilepath, plyFilename);
+        if (!loadEdgeMesh(plyFilename)) {
+          std::cerr << "Loading of " + plyFilename + " failed." << std::endl;
+          return;
+        }
+        shouldDrawEdgeMesh = true;
+        // Parse the fixed nodes of the simulation scenario,update gui and draw
+        // them
+        std::vector<gsl::index> fixedVertices;
+        ConfigurationFile::getFixedVertices(jsonFilepath, fixedVertices);
+        if (!fixedVertices.empty()) {
+          entries.simulation.fixedVertices = fixedVertices;
+          entries.simulation.strFixedVertices = "";
+          for (gsl::index vertexIndex : fixedVertices) {
+            entries.simulation.strFixedVertices +=
+                std::to_string(vertexIndex) + ",";
+          }
+          if (!fixedVertices.empty()) {
+            entries.simulation.strFixedVertices.erase(
+                entries.simulation.strFixedVertices.end() - 1);
+          }
+          shouldDrawFixedVertices = true;
+        }
+        // Parse nodal forces and draw them
+        std::vector<NodalForce> nodalForces;
+        ConfigurationFile::getNodalForces(jsonFilepath, nodalForces);
+        if (!nodalForces.empty()) {
+          entries.simulation.nodalForces = nodalForces;
+          shouldDrawNodalForces = true;
+        }
+
+        updateViewer();
+      }
+
+      ImGui::SameLine(0, p);
+
+      if (ImGui::Button("Save", ImVec2((w - p) / 2.f, 0))) {
+        const std::string jsonFilepath = igl::file_dialog_save();
+        if (jsonFilepath.empty()) {
+          return;
+        }
+        if (!Utilities::hasExtension(jsonFilepath, ".json")) {
+          std::cerr << "File " + jsonFilepath +
+                           " has not a json extension. Can't load workspace."
+                    << std::endl;
+          return;
+        }
+
+        // Fill a json struct with the simulation scenario
+        ConfigurationFile::SimulationScenario scenario{
+            entries.plyFilename, entries.simulation.fixedVertices,
+            entries.simulation.nodalForces};
+        nlohmann::json jsonFile(scenario);
+        // Export the contents of the json struct into a file
+        std::ofstream file(jsonFilepath);
+        file << jsonFile;
+      }
+
       if (ImGui::Button("Clear", ImVec2(-1, 0))) {
         clearViewer();
       }
@@ -43,15 +106,17 @@ void GUI::createMenu() {
     // Edge mesh tab
     if (ImGui::CollapsingHeader("Edge Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
       if (ImGui::Button("Load##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
-        clearViewer();
-        if (loadEdgeMesh()) {
+        const std::string meshFilenameString = igl::file_dialog_open();
+        if (loadEdgeMesh(meshFilenameString)) {
           entries.shouldDrawEdgeMesh = true;
-          drawEdgeMesh();
+          shouldDrawEdgeMesh = true;
+          updateViewer();
         }
       }
       if (ImGui::Checkbox("Show Edge Mesh", &entries.shouldDrawEdgeMesh)) {
+        shouldDrawEdgeMesh = entries.shouldDrawEdgeMesh;
         if (entries.shouldDrawEdgeMesh) {
-          drawEdgeMesh();
+          updateViewer();
         } else {
           viewer.setDrawingDataVisibility(drawingDataIDs.edgeMeshID, false);
         }
@@ -128,32 +193,20 @@ void GUI::createMenu() {
         executeSimulation();
       }
       // Fix vertices
-      static std::string strfixedVertices;
-      if (ImGui::InputText("Fixed Vertices", strfixedVertices)) {
+      if (ImGui::InputText("Fixed Vertices",
+                           entries.simulation.strFixedVertices)) {
         if (edgeMesh.IsEmpty())
           return;
         entries.simulation.fixedVertices.clear();
-        parseIntegers(strfixedVertices, entries.simulation.fixedVertices);
+        Utilities::parseIntegers(entries.simulation.strFixedVertices,
+                                 entries.simulation.fixedVertices);
         if (viewer.hasDrawingData(drawingDataIDs.fixedNodesID)) {
           viewer.deleteDrawingData(drawingDataIDs.fixedNodesID);
         }
-        if (!entries.simulation.fixedVertices.empty()) {
-          Eigen::MatrixX3d fixedNodePositions(
-              entries.simulation.fixedVertices.size(), 3);
-          for (gsl::index fixedNodeIndex = 0;
-               fixedNodeIndex < entries.simulation.fixedVertices.size();
-               fixedNodeIndex++) {
-            fixedNodePositions.row(fixedNodeIndex) =
-                VCGTriMesh::convertToEigenVector(
-                    edgeMesh
-                        .vert[entries.simulation.fixedVertices[fixedNodeIndex]]
-                        .cP());
-          }
-
-          drawer.markPositions(drawingDataIDs.fixedNodesID, fixedNodePositions,
-                               viewer);
-        }
+        shouldDrawFixedVertices = true;
+        updateViewer();
       }
+
       // Set nodal force
       if (ImGui::CollapsingHeader("Nodal Force",
                                   ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -186,7 +239,8 @@ void GUI::createMenu() {
           if (edgeMesh.IsEmpty())
             return;
           addNodalForce();
-          drawNodalForces();
+          shouldDrawNodalForces = true;
+          updateViewer();
         }
         ImGui::SameLine(0, p);
         // Clear nodal forces
@@ -200,6 +254,43 @@ void GUI::createMenu() {
     }
   };
   viewer.addPlugin("Main menu", pMenu);
+}
+void GUI::drawFixedVertices() {
+  drawFixedVertices(entries.simulation.fixedVertices);
+}
+void GUI::drawFixedVertices(const std::vector<gsl::index> &vertices) {
+  if (!vertices.empty()) {
+    Eigen::MatrixX3d fixedNodePositions(vertices.size(), 3);
+    for (gsl::index fixedNodeIndex = 0; fixedNodeIndex < vertices.size();
+         fixedNodeIndex++) {
+      gsl::index vertexIndex = vertices[fixedNodeIndex];
+      const bool vertexExists = vertexIndex < edgeMesh.VN();
+      if (!vertexExists) {
+        continue;
+      }
+      fixedNodePositions.row(fixedNodeIndex) =
+          VCGTriMesh::convertToEigenVector(edgeMesh.vert[vertexIndex].cP());
+    }
+
+    drawer.markPositions(drawingDataIDs.fixedNodesID, fixedNodePositions,
+                         viewer);
+  }
+}
+
+void GUI::updateViewer() {
+  if (shouldDrawEdgeMesh) {
+    shouldDrawEdgeMesh = false;
+    clearViewer();
+    drawEdgeMesh();
+  }
+  if (shouldDrawFixedVertices) {
+    shouldDrawFixedVertices = false;
+    drawFixedVertices();
+  }
+  if (shouldDrawNodalForces) {
+    shouldDrawNodalForces = false;
+    drawNodalForces();
+  }
 }
 
 void GUI::drawWorldAxis() {
@@ -218,19 +309,9 @@ void GUI::clearViewer() {
   }
 }
 
-bool GUI::loadEdgeMesh() {
-  const std::string meshFilenameString = igl::file_dialog_open();
-  const std::filesystem::path meshFilenamePath(meshFilenameString);
-  if (!meshFilenamePath.has_extension()) {
-    std::cerr << "Error: No file extension found in " << meshFilenameString
-              << std::endl;
-    return false;
-  }
-
-  const std::string extension = meshFilenamePath.extension().c_str();
-
-  if (extension != ".ply" && extension != ".PLY") {
-    std::cerr << "Error: Only ply file types are supported" << std::endl;
+bool GUI::loadEdgeMesh(const std::string &meshFilenameString) {
+  if (!Utilities::hasExtension(meshFilenameString, ".ply") ||
+      !std::filesystem::exists(meshFilenameString)) {
     return false;
   }
   entries.plyFilename = meshFilenameString;
@@ -248,9 +329,14 @@ void GUI::setSimulation() {
 
   const Eigen::MatrixX3d nodes = edgeMesh.getEigenVertices();
   const Eigen::MatrixX3d elementNormals = edgeMesh.getEigenEdgeNormals();
-  simulator.setSimulation(nodes, elements, elementNormals, fixedNodes,
-                          entries.simulation.nodalForces, beamDimensions,
-                          beamMaterial);
+  SimulationJob simulationJob{nodes,
+                              elements,
+                              elementNormals,
+                              fixedNodes,
+                              entries.simulation.nodalForces,
+                              beamDimensions,
+                              beamMaterial};
+  simulator.setSimulation(simulationJob);
 
   const std::filesystem::path resultsFolderPath =
       std::filesystem::current_path().append("Results");
