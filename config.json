@@ -1,0 +1,5 @@
+{
+	"plyFilename": "/home/iason/Coding/Projects/Euler-Bernoulli Beam simulation/test_threed-beam-fea/build-test_threed-beam-fea-Clang_Qt_5_12_4_in_PATH_qt5-Debug/spiralEdgeMesh.ply",
+	"fixedVertices": [1,2,3],
+	"forces": [[0,0,1000]]
+}
