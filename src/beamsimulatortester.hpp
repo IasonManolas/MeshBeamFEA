@@ -26,17 +26,24 @@ class BeamSimulatorTester {
     std::vector<BeamMaterial> getBeamMaterial() const;
   };
   BeamSimulator beamSimulator;
-  void launchCantileverTest();
+  void launchRotationTest();
   void setSimulation(const CantileverBeam &cantileverBeam);
-  void setSimulationResultsCSV(
-      const Eigen::Vector3d &beamXAxis, const Eigen::Vector3d &beamYAxis,
-      const size_t &numberOfBeams,
-      const filesystem::__cxx11::path &forceResultPath,
-      const filesystem::__cxx11::path &displacementResultPath);
+  void setSimulationResultsCSV(const Eigen::Vector3d &beamXAxis,
+                               const Eigen::Vector3d &beamYAxis,
+                               const size_t &numberOfBeams,
+                               const filesystem::path &forceResultPath,
+                               const filesystem::path &displacementResultPath);
+  void createResultFolders() const;
 
 public:
   BeamSimulatorTester();
+  void rotationTests(const std::string &plyFilename);
   void launchTests();
+
+private:
+  void launchRotationTest(const std::string &plyFilename,
+                          const Eigen::VectorXi &fixedNodes,
+                          const std::vector<NodalForce> &nodalForces);
 };
 
 #endif // BEAMSIMULATORTESTER_HPP

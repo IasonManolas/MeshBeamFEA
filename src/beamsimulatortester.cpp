@@ -1,10 +1,11 @@
 #include "beamsimulatortester.hpp"
+#include "edgemesh.hpp"
 #include <Eigen/Geometry>
 #include <filesystem>
 #include <gsl/gsl_util>
 #include <sstream>
 
-void BeamSimulatorTester::launchCantileverTest() {
+void BeamSimulatorTester::launchRotationTest() {
   CantileverBeam cantileverBeam;
   const std::filesystem::path resultsFolderPath{
       std::filesystem::current_path().append("Results")};
@@ -15,7 +16,6 @@ void BeamSimulatorTester::launchCantileverTest() {
   const std::filesystem::path displacementResultsPath{
       std::filesystem::path(resultsFolderPath).append("Displacements")};
   std::filesystem::create_directory(displacementResultsPath);
-
   const Eigen::Vector3d initialXAxis(cantileverBeam.XAxis);
   const Eigen::Vector3d initialYAxis(cantileverBeam.YAxis);
   Eigen::Vector3d rotationAxis{Eigen::Vector3d::UnitZ()};
@@ -40,6 +40,12 @@ void BeamSimulatorTester::launchCantileverTest() {
   } while (std::next_permutation(rotationAxis.data(), rotationAxis.data() + 3));
 }
 
+// void BeamSimulatorTester::launchRotationTest(
+//    const std::string &plyFilename, const Eigen::VectorXi &fixedNodes,
+//    const std::vector<NodalForces> &nodalForces) {
+//  createResultFolders();
+//}
+
 void BeamSimulatorTester::setSimulation(
     const BeamSimulatorTester::CantileverBeam &cantileverBeam) {
   const Eigen::MatrixX3d nodes(cantileverBeam.getNodes());
@@ -51,8 +57,10 @@ void BeamSimulatorTester::setSimulation(
       cantileverBeam.getBeamDimensions());
   const std::vector<BeamMaterial> beamMaterial(
       cantileverBeam.getBeamMaterial());
-  beamSimulator.setSimulation(nodes, elements, elementNormals, fixedNodes,
-                              nodeForces, beamDimensions, beamMaterial);
+  SimulationJob simulationJob{nodes,       elements,   elementNormals,
+                              fixedNodes,  nodeForces, beamDimensions,
+                              beamMaterial};
+  beamSimulator.setSimulation(simulationJob);
 }
 
 template <typename T>
@@ -65,9 +73,8 @@ std::string to_string_with_precision(const T a_value, const int n = 2) {
 
 void BeamSimulatorTester::setSimulationResultsCSV(
     const Eigen::Vector3d &beamXAxis, const Eigen::Vector3d &beamYAxis,
-    const size_t &numberOfBeams,
-    const filesystem::__cxx11::path &forceResultPath,
-    const filesystem::__cxx11::path &displacementResultPath) {
+    const size_t &numberOfBeams, const filesystem::path &forceResultPath,
+    const filesystem::path &displacementResultPath) {
   const std::string resultFileID{to_string_with_precision(numberOfBeams) +
                                  "_(" + to_string_with_precision(beamXAxis(0)) +
                                  "," + to_string_with_precision(beamXAxis(1)) +
@@ -88,9 +95,17 @@ void BeamSimulatorTester::setSimulationResultsCSV(
           .string());
 }
 
+void BeamSimulatorTester::createResultFolders() const {}
+
 BeamSimulatorTester::BeamSimulatorTester() {}
 
-void BeamSimulatorTester::launchTests() { launchCantileverTest(); }
+// void BeamSimulatorTester::rotationTests(const string &plyFilename) {
+//  Eigen::VectorXi fixedNodes(1);
+//  fixedNodes(0) = 0;
+//  launchRotationTest(plyFilename, );
+//}
+
+void BeamSimulatorTester::launchTests() { launchRotationTest(); }
 
 Eigen::MatrixX3d BeamSimulatorTester::CantileverBeam::getNodes() const {
   const size_t numberOfNodes = numberOfBeams + 1;

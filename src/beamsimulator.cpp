@@ -8,18 +8,15 @@
 
 BeamSimulator::BeamSimulator() {}
 
-void BeamSimulator::setSimulation(
-    const Eigen::MatrixX3d &nodes, const Eigen::MatrixX2i &elements,
-    const Eigen::MatrixX3d &elementNormals, const Eigen::VectorXi &fixedNodes,
-    const std::vector<NodalForce> &nodalForces,
-    const std::vector<BeamDimensions> &beamDimensions,
-    const std::vector<BeamMaterial> &beamMaterial) {
-  assert(elementNormals.rows() == elements.rows());
+void BeamSimulator::setSimulation(const SimulationJob &simulationJob) {
+  assert(simulationJob.elementalNormals.rows() ==
+         simulationJob.elements.rows());
   reset();
-  setNodes(nodes);
-  setElements(elements, elementNormals, beamDimensions, beamMaterial);
-  setFixedNodes(fixedNodes);
-  setNodalForces(nodalForces);
+  setNodes(simulationJob.nodes);
+  setElements(simulationJob.elements, simulationJob.elementalNormals,
+              simulationJob.beamDimensions, simulationJob.beamMaterial);
+  setFixedNodes(simulationJob.fixedNodes);
+  setNodalForces(simulationJob.nodalForces);
 }
 
 void BeamSimulator::setResultsNodalDisplacementCSVFilepath(

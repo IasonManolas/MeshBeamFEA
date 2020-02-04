@@ -3,7 +3,10 @@
 
 #include "beam.hpp"
 #include "mesh.hpp"
+#include <filesystem>
 #include <gsl/gsl>
+#include <igl/list_to_matrix.h>
+#include <json.hpp>
 #include <threed_beam_fea.h>
 #include <vector>
 
@@ -43,6 +46,16 @@ struct NodalForce {
   double magnitude;
 };
 
+struct SimulationJob {
+  Eigen::MatrixX3d nodes;
+  Eigen::MatrixX2i elements;
+  Eigen::MatrixX3d elementalNormals;
+  Eigen::VectorXi fixedNodes;
+  std::vector<NodalForce> nodalForces;
+  std::vector<BeamDimensions> beamDimensions;
+  std::vector<BeamMaterial> beamMaterial;
+};
+
 class BeamSimulator {
 private:
   std::vector<fea::Elem> elements;
@@ -71,13 +84,7 @@ public:
 
   fea::Summary executeSimulation();
   fea::Summary getResults() const;
-  void setSimulation(const Eigen::MatrixX3d &nodes,
-                     const Eigen::MatrixX2i &elements,
-                     const Eigen::MatrixX3d &edgeNormals,
-                     const Eigen::VectorXi &fixedNodes,
-                     const std::vector<NodalForce> &nodalForces,
-                     const std::vector<BeamDimensions> &beamDimensions,
-                     const std::vector<BeamMaterial> &beamMaterial);
+  void setSimulation(const SimulationJob &simulationJob);
   void setResultsNodalDisplacementCSVFilepath(const std::string &outputPath);
   void setResultsElementalForcesCSVFilepath(const std::string &outputPath);
 };
