@@ -46,6 +46,7 @@ void GUI::createMenu() {
           return;
         }
         shouldDrawEdgeMesh = true;
+        clearViewer();
         // Parse the fixed nodes of the simulation scenario,update gui and draw
         // them
         std::vector<gsl::index> fixedVertices;
@@ -113,6 +114,16 @@ void GUI::createMenu() {
           updateViewer();
         }
       }
+      // Saves the displaced mesh
+      if (ImGui::Button("Save##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
+        const std::string meshFilenameString = igl::file_dialog_open();
+        if (loadEdgeMesh(meshFilenameString)) {
+          entries.shouldDrawEdgeMesh = true;
+          shouldDrawEdgeMesh = true;
+          updateViewer();
+        }
+      }
+
       if (ImGui::Checkbox("Show Edge Mesh", &entries.shouldDrawEdgeMesh)) {
         shouldDrawEdgeMesh = entries.shouldDrawEdgeMesh;
         if (entries.shouldDrawEdgeMesh) {
@@ -280,7 +291,6 @@ void GUI::drawFixedVertices(const std::vector<gsl::index> &vertices) {
 void GUI::updateViewer() {
   if (shouldDrawEdgeMesh) {
     shouldDrawEdgeMesh = false;
-    clearViewer();
     drawEdgeMesh();
   }
   if (shouldDrawFixedVertices) {

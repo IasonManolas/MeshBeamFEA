@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <gsl/gsl>
 #include <igl/list_to_matrix.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 #include <threed_beam_fea.h>
 #include <vector>
 
