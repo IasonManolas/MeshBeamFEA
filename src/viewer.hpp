@@ -4,6 +4,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/opengl/glfw/imgui/ImGuiHelpers.h>
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
+#include <unordered_map>
 
 using ViewerType = igl::opengl::glfw::Viewer;
 using ViewerData = igl::opengl::ViewerData;

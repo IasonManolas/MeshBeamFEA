@@ -6,6 +6,7 @@
 #include <gsl/gsl_util>
 #include <igl/colormap.h>
 #include <imgui/imgui.h>
+#include <vector>
 
 class Colorbar {
 public:
