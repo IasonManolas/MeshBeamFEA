@@ -56,6 +56,7 @@ find_package(LIBIGL)
 
 include_directories(
         ${threed-beam-fea_SOURCE_DIR}/include
+        ${threed-beam-fea_SOURCE_DIR}/ext/boost-1.65.1
         ${vcglib_devel_SOURCE_DIR}
         ${nlohmann_json_SOURCE_DIR}/include
         ${LIBIGL_INCLUDE_DIR}
