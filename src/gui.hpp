@@ -16,6 +16,11 @@ class GUI : public Colorbar {
         int dof{0};
         float magnitude{1};
       } force;
+      void clear() {
+        fixedVertices.clear();
+        strFixedVertices.clear();
+        nodalForces.clear();
+      }
       std::vector<gsl::index> fixedVertices;
       std::string strFixedVertices;
       std::vector<NodalForce> nodalForces;

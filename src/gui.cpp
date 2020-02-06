@@ -109,20 +109,22 @@ void GUI::createMenu() {
       if (ImGui::Button("Load##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
         const std::string meshFilenameString = igl::file_dialog_open();
         if (loadEdgeMesh(meshFilenameString)) {
+          clearViewer();
           entries.shouldDrawEdgeMesh = true;
           shouldDrawEdgeMesh = true;
           updateViewer();
         }
       }
+      //      ImGui::SameLine(0, p);
       // Saves the displaced mesh
-      if (ImGui::Button("Save##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
-        const std::string meshFilenameString = igl::file_dialog_open();
-        if (loadEdgeMesh(meshFilenameString)) {
-          entries.shouldDrawEdgeMesh = true;
-          shouldDrawEdgeMesh = true;
-          updateViewer();
-        }
-      }
+      //      if (ImGui::Button("Save##Edge Mesh", ImVec2((w - p) / 2.f, 0))) {
+      //        const std::string meshFilenameString = igl::file_dialog_open();
+      //        if (loadEdgeMesh(meshFilenameString)) {
+      //          entries.shouldDrawEdgeMesh = true;
+      //          shouldDrawEdgeMesh = true;
+      //          updateViewer();
+      //        }
+      //      }
 
       if (ImGui::Checkbox("Show Edge Mesh", &entries.shouldDrawEdgeMesh)) {
         shouldDrawEdgeMesh = entries.shouldDrawEdgeMesh;
@@ -313,7 +315,7 @@ void GUI::drawWorldAxis() {
 
 void GUI::clearViewer() {
   viewer.clearDrawingData();
-  entries.simulation.nodalForces.clear();
+  entries.simulation.clear();
   if (entries.viewingOptions.shouldDrawWorldAxis) {
     drawWorldAxis();
   }

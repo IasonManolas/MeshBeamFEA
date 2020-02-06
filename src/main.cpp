@@ -1,7 +1,7 @@
 #include "gui.hpp"
 #include <filesystem>
 #include <iostream>
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 #include <stdexcept>
 #include <string>
 

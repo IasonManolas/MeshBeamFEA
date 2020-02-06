@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <gsl/gsl>
 #include <igl/list_to_matrix.h>
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 #include <threed_beam_fea.h>
 #include <vector>
 
@@ -23,21 +23,7 @@ struct BeamSimulationProperties {
   float GJ;
 
   BeamSimulationProperties(const BeamDimensions &dimensions,
-                           const BeamMaterial &material) {
-    crossArea = (dimensions.b * dimensions.h);
-    I2 = dimensions.b * std::pow(dimensions.h, 3) / 12;
-    I3 = dimensions.h * std::pow(dimensions.b, 3) / 12;
-    polarInertia = (I2 + I3);
-
-    const float youngsModulusPascal =
-        material.youngsModulusGPascal * std::pow(10, 9);
-
-    G = youngsModulusPascal / (2 * (1 + material.poissonsRatio));
-    EA = youngsModulusPascal * crossArea;
-    EIy = youngsModulusPascal * I3;
-    EIz = youngsModulusPascal * I2;
-    GJ = G * polarInertia;
-  }
+                           const BeamMaterial &material);
 };
 
 struct NodalForce {
@@ -56,29 +42,32 @@ struct SimulationJob {
   std::vector<BeamMaterial> beamMaterial;
 };
 
-class BeamSimulator {
-private:
+/** \struct FeaSimulationJob
+ *  \brief A struct for grouping together the simulation data used by the
+ * threed-beam-fea library
+ */
+struct FeaSimulationJob {
   std::vector<fea::Elem> elements;
   std::vector<fea::Node> nodes;
   std::vector<fea::BC> boundaryConditions;
   std::vector<fea::Force> nodalForces;
-  std::vector<Eigen::Vector3d> nodeNormals;
-  std::string nodalDisplacementsOutputFilepath{"nodal_displacement.csv"};
-  std::string elementalForcesOutputFilepath{"elemental_forces.csv"};
-  fea::Summary results;
 
-  static void printInfo(const fea::Job &job);
-  void reset();
-  void setMesh(VCGTriMesh &mesh);
-  void setNodes(const Eigen::MatrixX3d &nodes);
-  void setElements(const Eigen::MatrixX2i &elements,
-                   const Eigen::MatrixX3d &elementNormals,
-                   const std::vector<BeamDimensions> &beamDimensions,
-                   const std::vector<BeamMaterial> &beamMaterial);
+  void setElements(const SimulationJob &job);
+
+  void setNodes(const SimulationJob &job);
+
+  FeaSimulationJob(const SimulationJob &job);
+  FeaSimulationJob();
+  bool isEmpty() const;
+  void clear();
+
+private:
   void setFixedNodes(const Eigen::VectorXi &fixedNodes);
-  void setNodalForces(const std::vector<NodalForce> &nodalForces);
-  void setNodeNormals(const Eigen::MatrixX3d &nodeNormals);
 
+  void setNodalForces(const std::vector<NodalForce> &nodalForces);
+};
+
+class BeamSimulator {
 public:
   BeamSimulator();
 
@@ -87,6 +76,14 @@ public:
   void setSimulation(const SimulationJob &simulationJob);
   void setResultsNodalDisplacementCSVFilepath(const std::string &outputPath);
   void setResultsElementalForcesCSVFilepath(const std::string &outputPath);
+
+private:
+  FeaSimulationJob simulationJob;
+  std::string nodalDisplacementsOutputFilepath{"nodal_displacement.csv"};
+  std::string elementalForcesOutputFilepath{"elemental_forces.csv"};
+  fea::Summary results;
+
+  static void printInfo(const fea::Job &job);
 };
 
 #endif // BEAMSIMULATOR_HPP

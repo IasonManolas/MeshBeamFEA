@@ -81,24 +81,23 @@ public:
     IGLMesh iglMesh;
     iglMesh.vertices.resize(vcgMesh.VN(), 3);
     const std::vector<VCGVertex> &meshVerts = vcgMesh.vert;
-    for (size_t vertexIndex = 0; vertexIndex < meshVerts.size();
+    for (gsl::index vertexIndex = 0; vertexIndex < meshVerts.size();
          vertexIndex++) {
-      iglMesh.vertices.row(static_cast<Eigen::Index>(vertexIndex)) =
-          Eigen::Vector3d(meshVerts[vertexIndex].P().X(),
-                          meshVerts[vertexIndex].P().Y(),
-                          meshVerts[vertexIndex].P().Z());
+      iglMesh.vertices.row(vertexIndex) = Eigen::Vector3d(
+          meshVerts[vertexIndex].P().X(), meshVerts[vertexIndex].P().Y(),
+          meshVerts[vertexIndex].P().Z());
     }
 
     iglMesh.triFaces.resize(vcgMesh.FN(), 3);
     const std::vector<VCGFace> &meshFaces = vcgMesh.face;
-    for (size_t faceIndex = 0; faceIndex < meshFaces.size(); faceIndex++) {
+    for (gsl::index faceIndex = 0; faceIndex < meshFaces.size(); faceIndex++) {
       int vertex0Index = static_cast<int>(
           vcg::tri::Index<VCGTriMesh>(vcgMesh, meshFaces[faceIndex].cV(0)));
       int vertex1Index = static_cast<int>(
           vcg::tri::Index<VCGTriMesh>(vcgMesh, meshFaces[faceIndex].cV(1)));
       int vertex2Index = static_cast<int>(
           vcg::tri::Index<VCGTriMesh>(vcgMesh, meshFaces[faceIndex].cV(2)));
-      iglMesh.triFaces.row(static_cast<Eigen::Index>(faceIndex)) =
+      iglMesh.triFaces.row(faceIndex) =
           Eigen::Vector3i(vertex0Index, vertex1Index, vertex2Index);
     }
     return iglMesh;

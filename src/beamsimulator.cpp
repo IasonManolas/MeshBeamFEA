@@ -2,6 +2,7 @@
 #include <Eigen/Core>
 #include <filesystem>
 #include <gsl/gsl>
+#include <gsl/gsl_assert>
 #include <iostream>
 #include <vcg/complex/algorithms/create/platonic.h>
 #include <vcg/complex/algorithms/update/normal.h>
@@ -9,14 +10,7 @@
 BeamSimulator::BeamSimulator() {}
 
 void BeamSimulator::setSimulation(const SimulationJob &simulationJob) {
-  assert(simulationJob.elementalNormals.rows() ==
-         simulationJob.elements.rows());
-  reset();
-  setNodes(simulationJob.nodes);
-  setElements(simulationJob.elements, simulationJob.elementalNormals,
-              simulationJob.beamDimensions, simulationJob.beamMaterial);
-  setFixedNodes(simulationJob.fixedNodes);
-  setNodalForces(simulationJob.nodalForces);
+  this->simulationJob = FeaSimulationJob(simulationJob);
 }
 
 void BeamSimulator::setResultsNodalDisplacementCSVFilepath(
@@ -29,42 +23,109 @@ void BeamSimulator::setResultsElementalForcesCSVFilepath(
   this->elementalForcesOutputFilepath = outputFilepath;
 }
 
-void BeamSimulator::setNodes(const Eigen::MatrixX3d &nodes) {
-  const long int numberOfNodes = nodes.rows();
-  this->nodes.resize(gsl::narrow_cast<int>(numberOfNodes));
-  for (gsl::index nodeIndex = 0; nodeIndex < nodes.rows(); nodeIndex++) {
-    this->nodes[nodeIndex] = static_cast<fea::Node>(nodes.row(nodeIndex));
+fea::Summary BeamSimulator::getResults() const { return results; }
+
+void BeamSimulator::printInfo(const fea::Job &job) {
+  std::cout << "Details regarding the fea::Job:" << std::endl;
+  std::cout << "Nodes:" << std::endl;
+  for (fea::Node n : job.nodes) {
+    std::cout << n << std::endl;
+  }
+  std::cout << "Elements:" << std::endl;
+  for (Eigen::Vector2i e : job.elems) {
+    std::cout << e << std::endl;
   }
 }
 
-void BeamSimulator::setElements(
-    const Eigen::MatrixX2i &elements, const Eigen::MatrixX3d &elementNormals,
-    const std::vector<BeamDimensions> &beamDimensions,
-    const std::vector<BeamMaterial> &beamMaterial) {
-  assert(elements.rows() == beamDimensions.size());
-  assert(elements.rows() == beamMaterial.size());
-  const long int numberOfEdges = elements.rows();
-  this->elements.clear();
-  this->elements.resize(static_cast<size_t>(numberOfEdges));
+fea::Summary BeamSimulator::executeSimulation() {
+  Expects(!simulationJob.isEmpty());
+  fea::Job job(simulationJob.nodes, simulationJob.elements);
+  printInfo(job);
+
+  // create the default options
+  fea::Options opts;
+  if (!elementalForcesOutputFilepath.empty()) {
+    opts.save_elemental_forces = true;
+    opts.elemental_forces_filename = elementalForcesOutputFilepath;
+  }
+  if (!nodalDisplacementsOutputFilepath.empty()) {
+    opts.save_nodal_displacements = true;
+    opts.nodal_displacements_filename = nodalDisplacementsOutputFilepath;
+  }
+
+  // have the program output status updates
+  opts.verbose = true;
+
+  // form an empty vector of ties
+  std::vector<fea::Tie> ties;
+
+  // also create an empty list of equations
+  std::vector<fea::Equation> equations;
+
+  results = fea::solve(job, simulationJob.boundaryConditions,
+                       simulationJob.nodalForces, ties, equations, opts);
+
+  return results;
+}
+
+void FeaSimulationJob::setElements(const SimulationJob &job) {
+  const long int numberOfEdges = job.elements.rows();
+  Expects(numberOfEdges == job.beamDimensions.size());
+  Expects(numberOfEdges == job.beamMaterial.size());
+  Expects(numberOfEdges == job.elementalNormals.rows());
+  elements.clear();
+  elements.resize(static_cast<size_t>(numberOfEdges));
   for (gsl::index edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
-    const gsl::index nodeIndex0 = elements(edgeIndex, 0);
-    const gsl::index nodeIndex1 = elements(edgeIndex, 1);
+    const gsl::index nodeIndex0 = job.elements(edgeIndex, 0);
+    const gsl::index nodeIndex1 = job.elements(edgeIndex, 1);
     const bool nodeIndicesAreInRange =
-        nodeIndex0 < nodes.size() && nodeIndex1 < nodes.size();
-    assert(nodeIndicesAreInRange);
-    const std::vector<double> nAverageVector{elementNormals(edgeIndex, 0),
-                                             elementNormals(edgeIndex, 1),
-                                             elementNormals(edgeIndex, 2)};
-    BeamSimulationProperties prop(beamDimensions[edgeIndex],
-                                  beamMaterial[edgeIndex]);
+        nodeIndex0 < job.nodes.size() && nodeIndex1 < job.nodes.size();
+    Expects(nodeIndicesAreInRange);
+    const std::vector<double> nAverageVector{
+        job.elementalNormals(edgeIndex, 0), job.elementalNormals(edgeIndex, 1),
+        job.elementalNormals(edgeIndex, 2)};
+    BeamSimulationProperties prop(job.beamDimensions[edgeIndex],
+                                  job.beamMaterial[edgeIndex]);
     fea::Props feaProperties(prop.EA, prop.EIz, prop.EIy, prop.GJ,
                              nAverageVector);
     fea::Elem element(nodeIndex0, nodeIndex1, feaProperties);
-    this->elements[edgeIndex] = element;
+    elements[edgeIndex] = element;
   }
 }
 
-void BeamSimulator::setFixedNodes(const Eigen::VectorXi &fixedNodes) {
+void FeaSimulationJob::setNodes(const SimulationJob &job) {
+  const long int numberOfNodes = job.nodes.rows();
+  this->nodes.resize(gsl::narrow_cast<int>(numberOfNodes));
+  for (gsl::index nodeIndex = 0; nodeIndex < numberOfNodes; nodeIndex++) {
+    this->nodes[nodeIndex] = static_cast<fea::Node>(job.nodes.row(nodeIndex));
+  }
+
+  setFixedNodes(job.fixedNodes);
+  setNodalForces(job.nodalForces);
+}
+
+FeaSimulationJob::FeaSimulationJob(const SimulationJob &job) {
+  clear();
+  setElements(job);
+  setNodes(job);
+}
+
+FeaSimulationJob::FeaSimulationJob() {}
+
+bool FeaSimulationJob::isEmpty() const {
+  return elements.empty() || nodes.empty();
+}
+
+void FeaSimulationJob::clear() {
+  elements.clear();
+  nodes.clear();
+  boundaryConditions.clear();
+  nodalForces.clear();
+}
+
+void FeaSimulationJob::setFixedNodes(const Eigen::VectorXi &fixedNodes) {
+  const bool nodesHaveBeenSet{!nodes.empty()};
+  Expects(nodesHaveBeenSet);
   boundaryConditions.clear();
   boundaryConditions.resize(static_cast<size_t>(6 * fixedNodes.rows()));
   gsl::index boundaryConditionIndex = 0;
@@ -90,14 +151,17 @@ void BeamSimulator::setFixedNodes(const Eigen::VectorXi &fixedNodes) {
   }
 }
 
-void BeamSimulator::setNodalForces(const std::vector<NodalForce> &nodalForces) {
+void FeaSimulationJob::setNodalForces(
+    const std::vector<NodalForce> &nodalForces) {
+  const bool nodesHaveBeenSet{!nodes.empty()};
+  Expects(nodesHaveBeenSet);
   this->nodalForces.clear();
   this->nodalForces.resize(nodalForces.size());
   for (gsl::index forceIndex = 0; forceIndex < nodalForces.size();
        forceIndex++) {
     const NodalForce &force = nodalForces[forceIndex];
 
-    if (force.index > nodes.size() - 1) {
+    if (force.index > this->nodes.size() - 1) {
       throw std::range_error{"Node index is out of valid range."};
     }
 
@@ -106,59 +170,19 @@ void BeamSimulator::setNodalForces(const std::vector<NodalForce> &nodalForces) {
   }
 }
 
-fea::Summary BeamSimulator::getResults() const { return results; }
+BeamSimulationProperties::BeamSimulationProperties(
+    const BeamDimensions &dimensions, const BeamMaterial &material) {
+  crossArea = (dimensions.b * dimensions.h);
+  I2 = dimensions.b * std::pow(dimensions.h, 3) / 12;
+  I3 = dimensions.h * std::pow(dimensions.b, 3) / 12;
+  polarInertia = (I2 + I3);
 
-void BeamSimulator::printInfo(const fea::Job &job) {
-  std::cout << "Details regarding the fea::Job:" << std::endl;
-  std::cout << "Nodes:" << std::endl;
-  for (fea::Node n : job.nodes) {
-    std::cout << n << std::endl;
-  }
-  std::cout << "Elements:" << std::endl;
-  for (Eigen::Vector2i e : job.elems) {
-    std::cout << e << std::endl;
-  }
-}
+  const float youngsModulusPascal =
+      material.youngsModulusGPascal * std::pow(10, 9);
 
-void BeamSimulator::reset() {
-  elements.clear();
-  nodes.clear();
-  boundaryConditions.clear();
-  nodalForces.clear();
-}
-
-fea::Summary BeamSimulator::executeSimulation() {
-  fea::Job job(nodes, elements);
-  printInfo(job);
-
-  // create the default options
-  fea::Options opts;
-  const bool outputDisplacements = true;
-  const bool outputForces = true;
-  if (!elementalForcesOutputFilepath.empty()) {
-    opts.save_elemental_forces = true;
-    opts.elemental_forces_filename = elementalForcesOutputFilepath;
-  }
-  if (!nodalDisplacementsOutputFilepath.empty()) {
-    opts.save_nodal_displacements = true;
-    opts.nodal_displacements_filename = nodalDisplacementsOutputFilepath;
-  }
-
-  // have the program output status updates
-  opts.verbose = true;
-
-  // form an empty vector of ties since none were prescribed
-  std::vector<fea::Tie> ties;
-
-  // also create an empty list of equations as none were prescribed
-  std::vector<fea::Equation> equations;
-
-  fea::Summary summary =
-      fea::solve(job, boundaryConditions, nodalForces, ties, equations, opts);
-
-  // print a report of the analysis
-  //  std::cout << summary.FullReport() << std::endl;
-  results = summary;
-
-  return summary;
+  G = youngsModulusPascal / (2 * (1 + material.poissonsRatio));
+  EA = youngsModulusPascal * crossArea;
+  EIy = youngsModulusPascal * I3;
+  EIz = youngsModulusPascal * I2;
+  GJ = G * polarInertia;
 }

@@ -3,6 +3,7 @@
 #include <Eigen/Dense>
 #include <assert.h>
 #include <cmath>
+#include <gsl/gsl_assert>
 #include <iostream>
 
 struct BeamDimensions {
@@ -19,7 +20,7 @@ struct BeamMaterial {
   BeamMaterial(const float &poissonsRatio, const float &youngsModulusGPascal)
       : poissonsRatio(poissonsRatio),
         youngsModulusGPascal(youngsModulusGPascal) {
-    assert(poissonsRatio <= 0.5 && poissonsRatio >= -1);
+    Expects(poissonsRatio <= 0.5 && poissonsRatio >= -1);
   }
   BeamMaterial() : poissonsRatio(0.3), youngsModulusGPascal(210) {}
 };
