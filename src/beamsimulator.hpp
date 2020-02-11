@@ -42,6 +42,15 @@ struct SimulationJob {
   std::vector<BeamMaterial> beamMaterial;
 };
 
+struct SimulationResults {
+  std::vector<Eigen::VectorXd> edgeForces; ///< Force values per force component
+                                           ///< #force components x #edges
+  Eigen::MatrixXd
+      nodalDisplacements; ///< The displacement of each node #nodes x 3
+  SimulationResults(const fea::Summary &feaSummary);
+  SimulationResults() {}
+};
+
 /** \struct FeaSimulationJob
  *  \brief A struct for grouping together the simulation data used by the
  * threed-beam-fea library
@@ -63,7 +72,6 @@ struct FeaSimulationJob {
 
 private:
   void setFixedNodes(const Eigen::VectorXi &fixedNodes);
-
   void setNodalForces(const std::vector<NodalForce> &nodalForces);
 };
 
@@ -71,8 +79,8 @@ class BeamSimulator {
 public:
   BeamSimulator();
 
-  fea::Summary executeSimulation();
-  fea::Summary getResults() const;
+  SimulationResults executeSimulation();
+  SimulationResults getResults() const;
   void setSimulation(const SimulationJob &simulationJob);
   void setResultsNodalDisplacementCSVFilepath(const std::string &outputPath);
   void setResultsElementalForcesCSVFilepath(const std::string &outputPath);
@@ -81,7 +89,7 @@ private:
   FeaSimulationJob simulationJob;
   std::string nodalDisplacementsOutputFilepath{"nodal_displacement.csv"};
   std::string elementalForcesOutputFilepath{"elemental_forces.csv"};
-  fea::Summary results;
+  SimulationResults results;
 
   static void printInfo(const fea::Job &job);
 };

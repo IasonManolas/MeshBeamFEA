@@ -6,7 +6,7 @@
 #include "drawer.hpp"
 #include <igl/colormap.h>
 
-class GUI : public Colorbar {
+class GUI : public Colormap {
   struct Entries {
     bool shouldDrawEdgeMesh{false};
     std::string plyFilename;
@@ -46,6 +46,7 @@ private:
   Viewer viewer;
   VCGEdgeMesh edgeMesh;
   std::vector<std::pair<double, double>> minMaxForcesPerForceComponent;
+  std::vector<Colormap> colormaps; ///< The colorbars for each force component
   bool shouldDrawEdgeMesh = false;
   bool shouldDrawFixedVertices = false;
   bool shouldDrawNodalForces = false;
@@ -60,9 +61,8 @@ private:
   void executeSimulation();
   void addNodalForce();
   void drawNodalForces();
-  void drawDisplacedEdgeMesh(
-      const std::vector<std::vector<double>> &nodalDisplacements);
-  void drawEdgeForces(const std::vector<std::vector<double>> &edgeForces);
+  void drawDisplacedEdgeMesh(const Eigen::MatrixXd &nodalDisplacements);
+  void drawEdgeForces(const std::vector<Eigen::VectorXd> &edgeForces);
   void drawColorbar();
   void drawColorTypeCombo();
   void convertToEigen(const std::vector<std::vector<double>> &edgeForces,
@@ -71,9 +71,7 @@ private:
   void convertToColors(const std::vector<Eigen::VectorXd> &edgeForces,
                        std::vector<Eigen::MatrixXd> &edgeColors) const;
 
-  void drawSimulationResults(
-      const std::vector<std::vector<double>> &nodalDisplacements,
-      const std::vector<std::vector<double>> &elementForces);
+  void drawSimulationResults(const SimulationResults &simulationResults);
 
   void drawFixedVertices(const std::vector<gsl::index> &vertices);
   void updateViewer();

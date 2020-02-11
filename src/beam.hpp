@@ -10,7 +10,9 @@ struct BeamDimensions {
   float b;
   float h;
   BeamDimensions(const float &width, const float &height)
-      : b(width), h(height) {}
+      : b(width), h(height) {
+    Expects(width > 0 && height > 0);
+  }
   BeamDimensions() : b(1), h(1) {}
 };
 

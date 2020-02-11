@@ -23,7 +23,7 @@ void BeamSimulator::setResultsElementalForcesCSVFilepath(
   this->elementalForcesOutputFilepath = outputFilepath;
 }
 
-fea::Summary BeamSimulator::getResults() const { return results; }
+SimulationResults BeamSimulator::getResults() const { return results; }
 
 void BeamSimulator::printInfo(const fea::Job &job) {
   std::cout << "Details regarding the fea::Job:" << std::endl;
@@ -37,7 +37,7 @@ void BeamSimulator::printInfo(const fea::Job &job) {
   }
 }
 
-fea::Summary BeamSimulator::executeSimulation() {
+SimulationResults BeamSimulator::executeSimulation() {
   Expects(!simulationJob.isEmpty());
   fea::Job job(simulationJob.nodes, simulationJob.elements);
   printInfo(job);
@@ -185,4 +185,26 @@ BeamSimulationProperties::BeamSimulationProperties(
   EIy = youngsModulusPascal * I3;
   EIz = youngsModulusPascal * I2;
   GJ = G * polarInertia;
+}
+
+SimulationResults::SimulationResults(const fea::Summary &feaSummary) {
+  // Convert displacements
+  igl::list_to_matrix(feaSummary.nodal_displacements, nodalDisplacements);
+
+  // Convert forces
+  // Convert to vector of eigen matrices of the form force component-> per
+  // Edge
+  const int numDof = 6;
+  const size_t numberOfEdges = feaSummary.element_forces.size();
+  edgeForces =
+      std::vector<Eigen::VectorXd>(numDof, Eigen::VectorXd(2 * numberOfEdges));
+  for (gsl::index edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
+    for (gsl::index forceComponentIndex = 0; forceComponentIndex < numDof;
+         forceComponentIndex++) {
+      (edgeForces[forceComponentIndex])(2 * edgeIndex) =
+          feaSummary.element_forces[edgeIndex][forceComponentIndex];
+      (edgeForces[forceComponentIndex])(2 * edgeIndex + 1) =
+          feaSummary.element_forces[edgeIndex][numDof + forceComponentIndex];
+    }
+  }
 }

@@ -46,6 +46,7 @@ bool hasExtension(const std::string &filename, const std::string &extension) {
 } // namespace Utilities
 
 namespace ConfigurationFile {
+
 inline void getPlyFilename(const std::string jsonFilepath,
                            std::string &plyFilename) {
   ifstream inFile(jsonFilepath);
@@ -73,6 +74,7 @@ inline void getNodalForces(const std::string jsonFilepath,
       const NodalForce nf{static_cast<gsl::index>(forces[forceIndex][0]),
                           static_cast<gsl::index>(forces[forceIndex][1]),
                           forces[forceIndex][2]};
+      Expects(nf.dof >= 0 && nf.dof < 6 && nf.index >= 0 && nf.magnitude >= 0);
       nodalForces[forceIndex] = nf;
     }
   }

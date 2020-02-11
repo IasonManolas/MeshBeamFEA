@@ -55,6 +55,9 @@ void GUI::createMenu() {
           entries.simulation.fixedVertices = fixedVertices;
           entries.simulation.strFixedVertices = "";
           for (gsl::index vertexIndex : fixedVertices) {
+            const bool vertexIndexIsInBounds =
+                vertexIndex >= 0 && vertexIndex < edgeMesh.VN();
+            Expects(vertexIndexIsInBounds);
             entries.simulation.strFixedVertices +=
                 std::to_string(vertexIndex) + ",";
           }
@@ -279,6 +282,9 @@ void GUI::drawFixedVertices(const std::vector<gsl::index> &vertices) {
       gsl::index vertexIndex = vertices[fixedNodeIndex];
       const bool vertexExists = vertexIndex < edgeMesh.VN();
       if (!vertexExists) {
+        std::cerr << "Vertex with index " + std::to_string(vertexIndex) +
+                         " does not exist."
+                  << std::endl;
         continue;
       }
       fixedNodePositions.row(fixedNodeIndex) =
@@ -378,7 +384,7 @@ void GUI::drawEdgeMesh() {
 }
 
 void GUI::executeSimulation() {
-  assert(!edgeMesh.IsEmpty());
+  Expects(!edgeMesh.IsEmpty());
   if (viewer.hasDrawingData(drawingDataIDs.displacedEdgeMeshID)) {
     viewer.deleteDrawingData(drawingDataIDs.displacedEdgeMeshID);
   }
@@ -386,30 +392,25 @@ void GUI::executeSimulation() {
 
   const auto simulationResults = simulator.executeSimulation();
 
-  drawSimulationResults(simulationResults.nodal_displacements,
-                        simulationResults.element_forces);
+  drawSimulationResults(simulationResults);
 }
 
-void GUI::drawSimulationResults(
-    const std::vector<std::vector<double>> &nodalDisplacements,
-    const std::vector<std::vector<double>> &elementForces) {
-  drawDisplacedEdgeMesh(nodalDisplacements);
-  drawEdgeForces(elementForces);
+void GUI::drawSimulationResults(const SimulationResults &simulationResults) {
+  drawDisplacedEdgeMesh(simulationResults.nodalDisplacements);
+  drawEdgeForces(simulationResults.edgeForces);
 }
 
 void GUI::addNodalForce() {
-  if (entries.simulation.force.vertexIndex >= 0 &&
-      entries.simulation.force.dof < 6 && entries.simulation.force.dof >= 0) {
-    NodalForce force;
-    force.dof = entries.simulation.force.dof;
-    force.index = entries.simulation.force.vertexIndex;
-    force.magnitude = static_cast<double>(entries.simulation.force.magnitude);
-    entries.simulation.nodalForces.push_back(force);
-    std::cout << "Force <" << force.dof << "," << force.index << ","
-              << force.magnitude << "> was added." << std::endl;
-  } else {
-    std::cerr << "Force could not be created." << std::endl;
-  }
+  Expects(entries.simulation.force.vertexIndex >= 0 &&
+          entries.simulation.force.vertexIndex < edgeMesh.VN() &&
+          entries.simulation.force.dof < 6 &&
+          entries.simulation.force.dof >= 0);
+  NodalForce force{entries.simulation.force.vertexIndex,
+                   entries.simulation.force.dof,
+                   static_cast<double>(entries.simulation.force.magnitude)};
+  entries.simulation.nodalForces.push_back(force);
+  std::cout << "Force <" << force.dof << "," << force.index << ","
+            << force.magnitude << "> was added." << std::endl;
 }
 
 void GUI::drawNodalForces() {
@@ -417,6 +418,7 @@ void GUI::drawNodalForces() {
     viewer.deleteDrawingData(drawingDataIDs.nodalForcesID);
   }
 
+  // Combine all dof for the same vertices into a signle force vector
   std::unordered_map<gsl::index, Eigen::Vector3d> nodeIndexForceMap;
   for (gsl::index nodeIndex = 0;
        nodeIndex < entries.simulation.nodalForces.size(); nodeIndex++) {
@@ -472,70 +474,42 @@ void GUI::drawNodalForces() {
                    edgeEndPositions, color, viewer);
 }
 
-void GUI::drawDisplacedEdgeMesh(
-    const std::vector<std::vector<double>> &nodalDisplacements) {
-  Eigen::MatrixXd eigenNodalDisplacements;
-  igl::list_to_matrix(nodalDisplacements, eigenNodalDisplacements);
+void GUI::drawDisplacedEdgeMesh(const Eigen::MatrixXd &nodalDisplacements) {
   Eigen::MatrixX3d nodes = edgeMesh.getEigenVertices();
   Eigen::MatrixX3d eigenNodalDisplacementsXYZ(nodes.rows(), 3);
-  eigenNodalDisplacementsXYZ.col(0) = eigenNodalDisplacements.col(0);
-  eigenNodalDisplacementsXYZ.col(1) = eigenNodalDisplacements.col(1);
-  eigenNodalDisplacementsXYZ.col(2) = eigenNodalDisplacements.col(2);
-  assert(eigenNodalDisplacementsXYZ.rows() == nodes.rows());
+  eigenNodalDisplacementsXYZ.col(0) = nodalDisplacements.col(0);
+  eigenNodalDisplacementsXYZ.col(1) = nodalDisplacements.col(1);
+  eigenNodalDisplacementsXYZ.col(2) = nodalDisplacements.col(2);
+  Expects(eigenNodalDisplacementsXYZ.rows() == nodes.rows());
   const Eigen::MatrixX3d displacedVertices = eigenNodalDisplacementsXYZ + nodes;
-  //  viewer.setDrawingDataVisibility(drawingDataIDs.edgeMeshID, false);
-  //  drawEdgeMesh();
   Eigen::MatrixX2i elements = edgeMesh.getEigenEdges();
   drawer.drawEdges(drawingDataIDs.displacedEdgeMeshID, displacedVertices,
                    elements, edgeMesh.getEigenEdgeNormals(),
                    edgeMesh.getBeamDimensions(), viewer);
 }
 
-void GUI::drawEdgeForces(const std::vector<std::vector<double>> &edgeForces) {
-  std::vector<Eigen::VectorXd> eigenEdgeForces;
-  convertToEigen(edgeForces, eigenEdgeForces);
-  minMaxForcesPerForceComponent.clear();
-  minMaxForcesPerForceComponent.resize(
-      NodalForceComponent::NumberOfForceComponents);
-  for (size_t fc = Fx; fc < NodalForceComponent::NumberOfForceComponents;
-       fc++) {
-    minMaxForcesPerForceComponent[fc] = std::make_pair(
-        eigenEdgeForces[fc].minCoeff(), eigenEdgeForces[fc].maxCoeff());
-  }
+void GUI::drawEdgeForces(const std::vector<Eigen::VectorXd> &edgeForces) {
+  // Compute the color of each edge.
   std::vector<Eigen::MatrixXd> edgeColors;
-  convertToColors(eigenEdgeForces, edgeColors);
+  convertToColors(edgeForces, edgeColors);
   Eigen::MatrixXd &beamMeshVertices =
       viewer.getDrawingData(drawingDataIDs.displacedEdgeMeshID).V;
+  // Compute the color of each beam.
   drawer.computeBeamColors(edgeMesh.getEigenVertices(),
                            edgeMesh.getEigenEdges(), edgeColors,
                            beamMeshVertices);
   drawer.setBeamColors(drawingDataIDs.displacedEdgeMeshID,
-
                        entries.viewingOptions.chosenForceComponent, viewer);
-  init_colormaps(eigenEdgeForces, entries.viewingOptions.chosenColormapType);
+  for (gsl::index fc = Fx; fc < NodalForceComponent::NumberOfForceComponents;
+       fc++) {
+    colormaps.push_back(
+        Colormap{edgeForces[fc], entries.viewingOptions.chosenColormapType});
+  }
 }
 
 void GUI::convertToEigen(
     const std::vector<std::vector<double>> &forcesPerEdgePerComponent,
-    std::vector<Eigen::VectorXd> &forcesPerComponentPerEdge) {
-
-  // Convert to vector of eigen matrices of the form force component-> per
-  // Edge
-  // force values does global su
-  const int numDof = 6;
-  const size_t numberOfEdges = forcesPerEdgePerComponent.size();
-  forcesPerComponentPerEdge =
-      std::vector<Eigen::VectorXd>(numDof, Eigen::VectorXd(2 * numberOfEdges));
-  for (gsl::index edgeIndex = 0; edgeIndex < numberOfEdges; edgeIndex++) {
-    for (gsl::index forceComponentIndex = NodalForceComponent::Fx;
-         forceComponentIndex < numDof; forceComponentIndex++) {
-      (forcesPerComponentPerEdge[forceComponentIndex])(2 * edgeIndex) =
-          forcesPerEdgePerComponent[edgeIndex][forceComponentIndex];
-      (forcesPerComponentPerEdge[forceComponentIndex])(2 * edgeIndex + 1) =
-          forcesPerEdgePerComponent[edgeIndex][numDof + forceComponentIndex];
-    }
-  }
-}
+    std::vector<Eigen::VectorXd> &forcesPerComponentPerEdge) {}
 
 void GUI::convertToColors(const std::vector<Eigen::VectorXd> &edgeForces,
                           std::vector<Eigen::MatrixXd> &edgeColors) const {
@@ -552,14 +526,9 @@ void GUI::convertToColors(const std::vector<Eigen::VectorXd> &edgeForces,
 }
 
 void GUI::drawColorbar() {
-  Eigen::Vector4f backgroundColor(0.3f, 0.3f, 0.5f, 1.0f);
+  Eigen::Vector3f backgroundColor(0.3, 0.3, 0.5);
   backgroundColor *= 255;
-  draw_colorbar(
-      entries.viewingOptions.chosenForceComponent,
-      minMaxForcesPerForceComponent[entries.viewingOptions.chosenForceComponent]
-          .first,
-      minMaxForcesPerForceComponent[entries.viewingOptions.chosenForceComponent]
-          .second,
+  colormaps[entries.viewingOptions.chosenForceComponent].drawColorbar(
       backgroundColor);
 }
 
@@ -601,6 +570,13 @@ void GUI::drawColorTypeCombo() {
   if (selected_index != entries.viewingOptions.chosenColormapType) {
     entries.viewingOptions.chosenColormapType =
         static_cast<igl::ColorMapType>(selected_index);
-    drawEdgeForces(simulator.getResults().element_forces);
+
+    colormaps.clear();
+    for (gsl::index fc = Fx; fc < NodalForceComponent::NumberOfForceComponents;
+         fc++) {
+      colormaps.push_back(Colormap{simulator.getResults().edgeForces[fc],
+                                   entries.viewingOptions.chosenColormapType});
+    }
+    drawEdgeForces(simulator.getResults().edgeForces);
   }
 }
